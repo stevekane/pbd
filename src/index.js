@@ -110,7 +110,7 @@ function projectConstraints(iterations, estimates, ws, pcs) {
     while (i < l) {
       c = pcs[i++]
       d = c.d
-      k = 1 - Math.pow(1 - c.k, inviterations)
+      k = 1 - Math.pow(1 - c.k, inviterations) // TODO: seems like this could be stored once
       w1 = ws[c.i1]
       w2 = ws[c.i2]
       i1 = c.i1 * 3
