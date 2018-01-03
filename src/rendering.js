@@ -43,7 +43,7 @@ function RenderPoints(regl) {
 
       void main () {
         color = vec4(inverse_mass, .2, .5, 1);
-        gl_PointSize = size;
+        gl_PointSize = size * abs(position.y * position.x);
         gl_Position = vec4(position, 1);
       }
     `,
