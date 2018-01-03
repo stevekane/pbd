@@ -11,19 +11,19 @@ const ITERATION_COUNT = 10
 const PARTICLE_COUNT = 4
 const DISTANCE_CONSTRAINT_COUNT = 4
 const G = -1
+const SPREAD = .6
 const invmasses = new Float32Array(PARTICLE_COUNT)
 const velocities = new Float32Array(PARTICLE_COUNT * 3)
 const positions = new Float32Array(PARTICLE_COUNT * 3)
 const estimates = new Float32Array(PARTICLE_COUNT * 3)
 const distanceConstraintLines = new Float32Array(DISTANCE_CONSTRAINT_COUNT * 2 * 3)
 
-const spread = .5
 for (var i = 0, o, t; i < PARTICLE_COUNT; i++) {
   o = i * 3
   invmasses[i + 0] = i / PARTICLE_COUNT
   t = i * Math.PI * 2 / PARTICLE_COUNT
-  positions[o + 0] = Math.sin(t) * spread
-  positions[o + 1] = Math.cos(t) * spread
+  positions[o + 0] = Math.sin(t) * SPREAD
+  positions[o + 1] = Math.cos(t) * SPREAD
   positions[o + 2] = 0
 }
 
@@ -191,15 +191,25 @@ var distanceConstraints = [
 
 setTimeout(function () {
   regl.frame(function () {
+    // update timestep
     then = now
     now = performance.now()
     dT = (now - then) * .001
+
+    // apply external forces aka gravity
     applyExternalForces(dT, invmasses, positions, velocities)
+
+    // estimate positions from current velocities
     estimatePositions(dT, estimates, positions, velocities)
+
+    // iteratively project all constraints
     projectConstraints(ITERATION_COUNT, estimates, invmasses, distanceConstraints)
+
+    // update velocity and position based on estimates/positions
     updateVelocities(dT, estimates, positions, velocities)
     updatePositions(estimates, positions)
 
+    // update buffer containing lines for rendering constraints
     count = updateDistanceConstraintLines(positions, distanceConstraints, distanceConstraintLines)
 
     // update contents of buffers
@@ -214,6 +224,3 @@ setTimeout(function () {
     renderDistanceConstraints(distanceConstraintProps)
   })
 }, 100)
-
-window.dcls = distanceConstraintLines
-window.positions = positions
