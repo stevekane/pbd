@@ -7,16 +7,18 @@ const regl = Regl()
 const renderDistanceConstraints = RenderDistanceConstraints(regl)
 const renderPoints = RenderPoints(regl)
 const rr = (min, max) => Math.random() * (max - min) + min
-const ITERATION_COUNT = 10
-const PARTICLE_COUNT = 4
-const DISTANCE_CONSTRAINT_COUNT = 4
+const rrint = (min, max) => Math.floor(rr(min, max))
+const ITERATION_COUNT = 16
+const PARTICLE_COUNT = 4000
+const DISTANCE_CONSTRAINT_COUNT = PARTICLE_COUNT
 const G = -1
-const SPREAD = .6
+const SPREAD = .5
 const invmasses = new Float32Array(PARTICLE_COUNT)
 const velocities = new Float32Array(PARTICLE_COUNT * 3)
 const positions = new Float32Array(PARTICLE_COUNT * 3)
 const estimates = new Float32Array(PARTICLE_COUNT * 3)
 const distanceConstraintLines = new Float32Array(DISTANCE_CONSTRAINT_COUNT * 2 * 3)
+const distanceConstraints = []
 
 for (var i = 0, o, t; i < PARTICLE_COUNT; i++) {
   o = i * 3
@@ -25,6 +27,15 @@ for (var i = 0, o, t; i < PARTICLE_COUNT; i++) {
   positions[o + 0] = Math.sin(t) * SPREAD
   positions[o + 1] = Math.cos(t) * SPREAD
   positions[o + 2] = 0
+}
+
+for (var i = 0; i < PARTICLE_COUNT; i++) {
+  distanceConstraints.push({ 
+    i1: rrint(0, PARTICLE_COUNT), 
+    i2: rrint(0, PARTICLE_COUNT), 
+    d: rr(.1, .8), 
+    k: rr(.1, .9)
+  })
 }
 
 const invmassbuffer = regl.buffer({ 
@@ -79,6 +90,7 @@ function updatePositions(estimates, positions) {
 }
 
 function projectConstraints(iterations, estimates, ws, pcs) {
+  var inviterations = 1 / iterations
   var l = pcs.length
   var i = 0
   var c, d
@@ -98,7 +110,7 @@ function projectConstraints(iterations, estimates, ws, pcs) {
     while (i < l) {
       c = pcs[i++]
       d = c.d
-      k = c.k
+      k = 1 - Math.pow(1 - c.k, inviterations)
       w1 = ws[c.i1]
       w2 = ws[c.i2]
       i1 = c.i1 * 3
@@ -112,14 +124,15 @@ function projectConstraints(iterations, estimates, ws, pcs) {
       dx = x1 - x2
       dy = y1 - y2
       dz = z1 - z2
-      dist = Math.sqrt(dx * dx + dy * dy + dz * dz) - d
+      dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
       distdiff = dist - d
+      // this is all specifically for distance constraints and inequality. perhaps generalize?
       if (distdiff < 0) continue
       dirx = dx / dist
       diry = dy / dist
       dirz = dz / dist
       wsum = w1 + w2
-      // some redundant calculation here... could be refactored
+      //TODO: some redundant calculation here... could be refactored
       dp1x = k * -w1 * distdiff * dirx / wsum
       dp1y = k * -w1 * distdiff * diry / wsum
       dp1z = k * -w1 * distdiff * dirz / wsum
@@ -147,7 +160,6 @@ function updateDistanceConstraintLines(ps, cs, cls) {
     c = cs[i++]
     i1 = c.i1 * 3
     i2 = c.i2 * 3
-    cls.subarray
     cls[o++] = ps[i1++]
     cls[o++] = ps[i1++]
     cls[o++] = ps[i1++]
@@ -166,18 +178,12 @@ var particleProps = {
   positions: positionbuffer,
   inverseMasses: invmassbuffer,
   count: PARTICLE_COUNT,
-  size: 40
+  size: 80
 }
 var distanceConstraintProps = {
   count: 0,
   positions: distanceConstraintBuffer
 }
-var distanceConstraints = [
-  { i1: 0, i2: 1, d: .1, k: .01 },
-  { i1: 1, i2: 2, d: .2, k: .1 },
-  { i1: 2, i2: 3, d: .3, k: .1 },
-  // { i1: 3, i2: 0, d: .1 }
-]
 
 setTimeout(function () {
   regl.frame(function () {
@@ -187,7 +193,7 @@ setTimeout(function () {
     dT = (now - then) * .001
 
     // apply external forces aka gravity
-    applyExternalForces(dT, invmasses, positions, velocities)
+    // applyExternalForces(dT, invmasses, positions, velocities)
 
     // estimate positions from current velocities
     estimatePositions(dT, estimates, positions, velocities)
@@ -214,3 +220,5 @@ setTimeout(function () {
     renderDistanceConstraints(distanceConstraintProps)
   })
 }, 100)
+
+window.positions = positions
