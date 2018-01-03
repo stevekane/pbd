@@ -17,12 +17,13 @@ const positions = new Float32Array(PARTICLE_COUNT * 3)
 const estimates = new Float32Array(PARTICLE_COUNT * 3)
 const distanceConstraintLines = new Float32Array(DISTANCE_CONSTRAINT_COUNT * 2 * 3)
 
+const spread = .5
 for (var i = 0, o, t; i < PARTICLE_COUNT; i++) {
   o = i * 3
   invmasses[i + 0] = i / PARTICLE_COUNT
   t = i * Math.PI * 2 / PARTICLE_COUNT
-  positions[o + 0] = Math.sin(t) * .8
-  positions[o + 1] = Math.cos(t) * .8
+  positions[o + 0] = Math.sin(t) * spread
+  positions[o + 1] = Math.cos(t) * spread
   positions[o + 2] = 0
 }
 
@@ -112,6 +113,7 @@ function projectConstraints(iterations, estimates, ws, pcs) {
       dz = z1 - z2
       dist = Math.sqrt(dx * dx + dy * dy + dz * dz) - d
       distdiff = dist - d
+      if (distdiff < 0) continue
       dirx = dx / dist
       diry = dy / dist
       dirz = dz / dist
@@ -182,8 +184,8 @@ var distanceConstraintProps = {
 }
 var distanceConstraints = [
   { i1: 0, i2: 1, d: .1 },
-  { i1: 1, i2: 2, d: .1 },
-  { i1: 2, i2: 3, d: .1 },
+  { i1: 1, i2: 2, d: .2 },
+  { i1: 2, i2: 3, d: .3 },
   // { i1: 3, i2: 0, d: .1 }
 ]
 
