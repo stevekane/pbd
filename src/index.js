@@ -79,7 +79,6 @@ function updatePositions(estimates, positions) {
 }
 
 function projectConstraints(iterations, estimates, ws, pcs) {
-  var lambda = 1 / iterations
   var l = pcs.length
   var i = 0
   var c, d
@@ -90,6 +89,7 @@ function projectConstraints(iterations, estimates, ws, pcs) {
   var dp1, dp2
   var dist, distdiff, dirx, diry, dirz
   var w1, w2, wsum
+  var k
   var dp1x, dp1y, dp1z
   var dp2x, dp2y, dp2z
   var w1, w2
@@ -98,6 +98,7 @@ function projectConstraints(iterations, estimates, ws, pcs) {
     while (i < l) {
       c = pcs[i++]
       d = c.d
+      k = c.k
       w1 = ws[c.i1]
       w2 = ws[c.i2]
       i1 = c.i1 * 3
@@ -119,12 +120,12 @@ function projectConstraints(iterations, estimates, ws, pcs) {
       dirz = dz / dist
       wsum = w1 + w2
       // some redundant calculation here... could be refactored
-      dp1x = lambda * -w1 * distdiff * dirx / wsum
-      dp1y = lambda * -w1 * distdiff * diry / wsum
-      dp1z = lambda * -w1 * distdiff * dirz / wsum
-      dp2x = lambda * w2 * distdiff * dirx / wsum
-      dp2y = lambda * w2 * distdiff * diry / wsum
-      dp2z = lambda * w2 * distdiff * dirz / wsum
+      dp1x = k * -w1 * distdiff * dirx / wsum
+      dp1y = k * -w1 * distdiff * diry / wsum
+      dp1z = k * -w1 * distdiff * dirz / wsum
+      dp2x = k * w2 * distdiff * dirx / wsum
+      dp2y = k * w2 * distdiff * diry / wsum
+      dp2z = k * w2 * distdiff * dirz / wsum
       estimates[i1--] = dp1z + z1
       estimates[i1--] = dp1y + y1
       estimates[i1]   = dp1x + x1
@@ -133,17 +134,6 @@ function projectConstraints(iterations, estimates, ws, pcs) {
       estimates[i2]   = dp2x + x2
     }
   }
-}
-
-function distance(x1, y1, z1, x2, y2, z2) {
-  var dx = x1 - x2
-  var dy = y1 - y2
-  var dz = z1 - z2
-
-  dx *= dx
-  dy *= dy
-  dz *= dz
-  return Math.sqrt(dx + dy + dz)
 }
 
 function updateDistanceConstraintLines(ps, cs, cls) {
@@ -183,9 +173,9 @@ var distanceConstraintProps = {
   positions: distanceConstraintBuffer
 }
 var distanceConstraints = [
-  { i1: 0, i2: 1, d: .1 },
-  { i1: 1, i2: 2, d: .2 },
-  { i1: 2, i2: 3, d: .3 },
+  { i1: 0, i2: 1, d: .1, k: .01 },
+  { i1: 1, i2: 2, d: .2, k: .1 },
+  { i1: 2, i2: 3, d: .3, k: .1 },
   // { i1: 3, i2: 0, d: .1 }
 ]
 
