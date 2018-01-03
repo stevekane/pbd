@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "browserify -o public/index.js src/index.js"
+    "build": "browserify src/index.js | indexhtmlify > public/index.html"
   },
   "keywords": [],
   "author": "",
