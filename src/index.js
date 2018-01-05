@@ -8,35 +8,63 @@ const renderDistanceConstraints = RenderDistanceConstraints(regl)
 const renderPoints = RenderPoints(regl)
 const rr = (min, max) => Math.random() * (max - min) + min
 const rrint = (min, max) => Math.floor(rr(min, max))
-const ITERATION_COUNT = 16
-const PARTICLE_COUNT = 4000
+const ITERATION_COUNT = 10
+const PARTICLE_COUNT = 4
 const DISTANCE_CONSTRAINT_COUNT = PARTICLE_COUNT
-const G = -1
+const G = -10
 const SPREAD = .5
 const invmasses = new Float32Array(PARTICLE_COUNT)
 const velocities = new Float32Array(PARTICLE_COUNT * 3)
-const positions = new Float32Array(PARTICLE_COUNT * 3)
-const estimates = new Float32Array(PARTICLE_COUNT * 3)
+// TODO: Could create one larger buffer. Would result in allocation all being contiguous
+const positions = [
+  new Float32Array(PARTICLE_COUNT * 3),
+  new Float32Array(PARTICLE_COUNT * 3)
+]
 const distanceConstraintLines = new Float32Array(DISTANCE_CONSTRAINT_COUNT * 2 * 3)
 const distanceConstraints = []
 
-for (var i = 0, o, t; i < PARTICLE_COUNT; i++) {
-  o = i * 3
-  invmasses[i + 0] = i / PARTICLE_COUNT
-  t = i * Math.PI * 2 / PARTICLE_COUNT
-  positions[o + 0] = Math.sin(t) * SPREAD
-  positions[o + 1] = Math.cos(t) * SPREAD
-  positions[o + 2] = 0
-}
+// This system is a hanging triangle swinging down from the left
+// and a single suspended point swinging down from the right. 
+// The goal of this system is to prevent intersections in a testable
+// environment
+const p1 = [ 0, SPREAD, 0 ]
+const p2 = [ -SPREAD, SPREAD, SPREAD ]
+const p3 = [ -SPREAD, SPREAD, -SPREAD ]
+const p4 = [ SPREAD, SPREAD, 0 ]
+const LONG_D = Math.sqrt(SPREAD * SPREAD + SPREAD * SPREAD)
 
-for (var i = 0; i < PARTICLE_COUNT; i++) {
-  distanceConstraints.push({ 
-    i1: rrint(0, PARTICLE_COUNT), 
-    i2: rrint(0, PARTICLE_COUNT), 
-    d: rr(.1, .8), 
-    k: rr(.1, .9)
-  })
-}
+positions[0].set(p1, 0)
+positions[0].set(p2, 3)
+positions[0].set(p3, 6)
+positions[0].set(p4, 9)
+
+distanceConstraints.push({ i1: 0, i2: 1, d: LONG_D, k: 1 })
+distanceConstraints.push({ i1: 1, i2: 2, d: SPREAD * 2, k: 1 })
+distanceConstraints.push({ i1: 2, i2: 0, d: LONG_D, k: 1 })
+distanceConstraints.push({ i1: 0, i2: 3, d: SPREAD, k: 1 })
+
+invmasses[0] = 0
+invmasses[1] = 1
+invmasses[2] = 1
+invmasses[3] = 1
+
+// for (var i = 0, o, t; i < PARTICLE_COUNT; i++) {
+//   o = i * 3
+//   invmasses[i + 0] = i / PARTICLE_COUNT
+//   t = i * Math.PI * 2 / PARTICLE_COUNT
+//   positions[0][o + 0] = Math.sin(t) * SPREAD
+//   positions[0][o + 1] = Math.cos(t) * SPREAD
+//   positions[0][o + 2] = rr(-1, 1)
+// }
+// 
+// for (var i = 0; i < PARTICLE_COUNT; i++) {
+//   distanceConstraints.push({ 
+//     i1: rrint(0, PARTICLE_COUNT), 
+//     i2: rrint(0, PARTICLE_COUNT), 
+//     d: rr(.7, .8), 
+//     k: rr(.8, .9)
+//   })
+// }
 
 const invmassbuffer = regl.buffer({ 
   data: invmasses, 
@@ -51,47 +79,45 @@ const distanceConstraintBuffer = regl.buffer({
   usage: "dynamic"
 })
 
-function applyExternalForces(dT, ws, ps, vs) {
+// apply some non-linear dampening and gravity
+function applyExternalForces(dt, ws, ps, vs) {
+  const DAMPING_FACTOR = .99
+  const GDT = G * dt
+
   for (var i = 0; i < PARTICLE_COUNT; i++) {
-    if (ws[i] == 0)
-      continue
-    vs[i * 3 + 1] += dT * G // GRAVITY
+    vs[i * 3 + 1] = vs[i * 3 + 1] * DAMPING_FACTOR + GDT * ws[i]
   }
 }
 
-function estimatePositions(dT, estimates, ps, vs) {
+function estimatePositions(dt, estimates, ps, vs) {
   var i = 0
   var l = estimates.length
 
   while (i < l) {
-    estimates[i] = ps[i] + dT * vs[i++]
-    estimates[i] = ps[i] + dT * vs[i++]
-    estimates[i] = ps[i] + dT * vs[i++]
+    estimates[i] = ps[i] + dt * vs[i++]
+    estimates[i] = ps[i] + dt * vs[i++]
+    estimates[i] = ps[i] + dt * vs[i++]
   }
 }
 
-function updateVelocities(dT, estimates, ps, vs) {
-  if (dT == 0) 
+function updateVelocities(dt, estimates, ps, vs) {
+  if (dt == 0) 
     return
 
-  var invdT = 1 / dT
+  var invdt = 1 / dt
   var i = 0
   var l = vs.length
 
   while (i < l) {
-    vs[i] = (estimates[i] - ps[i++]) * invdT
-    vs[i] = (estimates[i] - ps[i++]) * invdT
-    vs[i] = (estimates[i] - ps[i++]) * invdT
+    vs[i] = (estimates[i] - ps[i++]) * invdt
+    vs[i] = (estimates[i] - ps[i++]) * invdt
+    vs[i] = (estimates[i] - ps[i++]) * invdt
   }
 }
 
-function updatePositions(estimates, positions) {
-  positions.set(estimates) 
-}
-
-function projectConstraints(iterations, estimates, ws, pcs) {
+function projectConstraints(iterations, estimates, ws, dcs) {
   var inviterations = 1 / iterations
-  var l = pcs.length
+  var l = dcs.length
   var i = 0
   var c, d
   var i1, i2
@@ -108,7 +134,7 @@ function projectConstraints(iterations, estimates, ws, pcs) {
 
   while (iterations-- > 0) {
     while (i < l) {
-      c = pcs[i++]
+      c = dcs[i++]
       d = c.d
       k = 1 - Math.pow(1 - c.k, inviterations) // TODO: seems like this could be stored once
       w1 = ws[c.i1]
@@ -170,55 +196,55 @@ function updateDistanceConstraintLines(ps, cs, cls) {
   return l * 2
 }
 
-var then = performance.now()
-var now = performance.now()
-var dT = 0
-var count = 0
-var particleProps = {
+const DT = 1 / 60
+const MAX_TIME = .1
+const INIT_TIME = 200
+const particleProps = {
   positions: positionbuffer,
   inverseMasses: invmassbuffer,
   count: PARTICLE_COUNT,
-  size: 80
+  size: 10
 }
-var distanceConstraintProps = {
+const distanceConstraintProps = {
   count: 0,
   positions: distanceConstraintBuffer
 }
 
+var currentTime = performance.now() * .001
+var t = 0
+var acc = 0
+var i = 1
+var ii = 0
+var tmp = i
+var count = 0
+
 setTimeout(function () {
   regl.frame(function () {
-    // update timestep
-    then = now
-    now = performance.now()
-    dT = (now - then) * .001
+    var newTime = performance.now() * .001
+    var frameTime = Math.min(newTime - currentTime, MAX_TIME)
 
-    // apply external forces aka gravity
-    // applyExternalForces(dT, invmasses, positions, velocities)
+    currentTime = newTime
+    acc = acc + frameTime
 
-    // estimate positions from current velocities
-    estimatePositions(dT, estimates, positions, velocities)
+    tmp = i
+    i = ii
+    ii = tmp
 
-    // iteratively project all constraints
-    projectConstraints(ITERATION_COUNT, estimates, invmasses, distanceConstraints)
-
-    // update velocity and position based on estimates/positions
-    updateVelocities(dT, estimates, positions, velocities)
-    updatePositions(estimates, positions)
-
-    // update buffer containing lines for rendering constraints
-    count = updateDistanceConstraintLines(positions, distanceConstraints, distanceConstraintLines)
-
-    // update contents of buffers
-    distanceConstraintBuffer.subdata(distanceConstraintLines)
-    positionbuffer.subdata(positions)
-
-    // update properties for rendering
-    distanceConstraintProps.count = count
-
-    // render points and constraints
+    while (acc >= DT) {
+      applyExternalForces(DT, invmasses, positions, velocities)
+      estimatePositions(DT, positions[ii], positions[i], velocities)
+      projectConstraints(ITERATION_COUNT, positions[ii], invmasses, distanceConstraints)
+      updateVelocities(DT, positions[ii], positions[i], velocities)
+      count = updateDistanceConstraintLines(positions[i], distanceConstraints, distanceConstraintLines)
+      distanceConstraintBuffer.subdata(distanceConstraintLines)
+      positionbuffer.subdata(positions[i])
+      distanceConstraintProps.count = count
+      t += DT
+      acc -= DT
+    }
     renderPoints(particleProps)
     renderDistanceConstraints(distanceConstraintProps)
   })
-}, 100)
+}, INIT_TIME)
 
 window.positions = positions
