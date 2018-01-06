@@ -1,4 +1,5 @@
 module.exports.Render = Render
+module.exports.updateDistanceConstraintLines = updateDistanceConstraintLines
 
 function Render(regl) {
   return regl({
@@ -7,8 +8,7 @@ function Render(regl) {
 
       attribute vec3 position;
 
-      uniform mat4 view;
-      uniform mat4 projection;
+      uniform mat4 view; uniform mat4 projection;
 
       uniform float size;
       uniform vec4 color;
@@ -41,3 +41,25 @@ function Render(regl) {
     primitive: regl.prop("primitive")
   })
 }
+
+function updateDistanceConstraintLines(ps, cs, cls) {
+  var l = cs.length
+  var i = 0
+  var o = 0
+  var c
+  var i1, i2
+
+  while (i < l) {
+    c = cs[i++]
+    i1 = c.i1 * 3
+    i2 = c.i2 * 3
+    cls[o++] = ps[i1++]
+    cls[o++] = ps[i1++]
+    cls[o++] = ps[i1++]
+    cls[o++] = ps[i2++]
+    cls[o++] = ps[i2++]
+    cls[o++] = ps[i2++]
+  }
+  return l * 2
+}
+
