@@ -1,5 +1,5 @@
 const V3 = require("gl-vec3")
-const rti = require("ray-triangle-intersection")
+const { rayTriangleIntersection } = require("./intersection")
 
 exports.applyExternalForces = applyExternalForces
 exports.estimatePositions = estimatePositions
@@ -63,13 +63,12 @@ function updateCollisions(frame, cs, tris, es, ps) {
 
     for (var j = 0; j < tris.length; j++) {
       tri = tris[j]
-      collides = rti(collisionPoint, pos, dir, tri)
+      collides = rayTriangleIntersection(collisionPoint, pos, dir, tri)
       
       if (collides) {
         toContact = V3.squaredDistance(collisionPoint, pos)
         if (toContact <= dP)
-          debugger
-          // console.log("it collides", frame, i)
+          console.log("it collides", frame, i)
       }
     }
   }
