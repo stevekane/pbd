@@ -1,22 +1,29 @@
+const V3 = require("gl-vec3")
+const rti = require("ray-triangle-intersection")
+
 exports.applyExternalForces = applyExternalForces
 exports.estimatePositions = estimatePositions
 exports.updateVelocities = updateVelocities
+exports.updateCollisions = updateCollisions
 exports.projectConstraints = projectConstraints
 
 function applyExternalForces(dt, DAMPING_FACTOR, GRAVITY, ws, vs) {
   const GDT = GRAVITY * dt
   const count = vs.length / 3
 
-  for (var i = 0; i < count; i++) {
-    vs[i * 3 + 1] = vs[i * 3 + 1] * DAMPING_FACTOR + GDT * ws[i]
+  // unsure if the access pattern below is the fastest possible
+  for (var i = 0, o; i < count; i++) {
+    o = i * 3 + 1
+    vs[o] *= DAMPING_FACTOR 
+    vs[o] += GDT * ws[i]
   }
 }
 
 function estimatePositions(dt, estimates, ps, vs) {
   var i = 0
-  var l = estimates.length
+  var particleCount = estimates.length
 
-  while (i < l) {
+  while (i < particleCount) {
     estimates[i] = ps[i] + dt * vs[i++]
     estimates[i] = ps[i] + dt * vs[i++]
     estimates[i] = ps[i] + dt * vs[i++]
@@ -27,20 +34,50 @@ function updateVelocities(dt, estimates, ps, vs) {
   if (dt == 0) 
     return
 
+  var particleCount = vs.length
   var invdt = 1 / dt
   var i = 0
-  var l = vs.length
 
-  while (i < l) {
+  while (i < particleCount) {
     vs[i] = (estimates[i] - ps[i++]) * invdt
     vs[i] = (estimates[i] - ps[i++]) * invdt
     vs[i] = (estimates[i] - ps[i++]) * invdt
   }
 }
 
+// ps and es are flat arrays. tris is [ [x,y,z], [x,y,z], [x,y,z] ]
+function updateCollisions(frame, cs, tris, es, ps) {
+  var collisionPoint = [0, 0, 0] 
+  var collides = false
+  var dir = [ 0, 0, 0 ]
+  var dP = 0
+  var toContact = 0
+  var est, pos
+
+  for (var i = 0; i < ps.length; i += 3) {
+    pos = ps.slice(i, i + 3)
+    est = es.slice(i, i + 3)
+    dP = V3.squaredDistance(est, pos)
+    V3.subtract(dir, est, pos)
+    V3.normalize(dir, dir)
+
+    for (var j = 0; j < tris.length; j++) {
+      tri = tris[j]
+      collides = rti(collisionPoint, pos, dir, tri)
+      
+      if (collides) {
+        toContact = V3.squaredDistance(collisionPoint, pos)
+        if (toContact <= dP)
+          debugger
+          // console.log("it collides", frame, i)
+      }
+    }
+  }
+}
+
 function projectConstraints(iterations, estimates, ws, dcs) {
   var inviterations = 1 / iterations
-  var l = dcs.length
+  var distanceConstraintCount = dcs.length
   var i = 0
   var c, d
   var i1, i2
@@ -56,10 +93,11 @@ function projectConstraints(iterations, estimates, ws, dcs) {
   var w1, w2
 
   while (iterations-- > 0) {
-    while (i < l) {
+    // these are all distance constraints
+    while (i < distanceConstraintCount) {
       c = dcs[i++]
       d = c.d
-      k = 1 - Math.pow(1 - c.k, inviterations) // TODO: seems like this could be stored once
+      k = 1 - Math.pow(1 - c.k, inviterations) // TODO: pre-calculate
       w1 = ws[c.i1]
       w2 = ws[c.i2]
       i1 = c.i1 * 3
@@ -75,13 +113,13 @@ function projectConstraints(iterations, estimates, ws, dcs) {
       dz = z1 - z2
       dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
       distdiff = dist - d
-      // this is all specifically for distance constraints and inequality. perhaps generalize?
-      if (distdiff < 0) continue
+      // inequality constraint
+      if (distdiff < 0) 
+        continue
       dirx = dx / dist
       diry = dy / dist
       dirz = dz / dist
       wsum = w1 + w2
-      //TODO: some redundant calculation here... could be refactored
       dp1x = k * -w1 * distdiff * dirx / wsum
       dp1y = k * -w1 * distdiff * diry / wsum
       dp1z = k * -w1 * distdiff * dirz / wsum
@@ -97,4 +135,3 @@ function projectConstraints(iterations, estimates, ws, dcs) {
     }
   }
 }
-
