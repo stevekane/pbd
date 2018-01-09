@@ -46,13 +46,13 @@ function updateVelocities(dt, estimates, ps, vs) {
 }
 
 // ps and es are flat arrays. tris is [ [x,y,z], [x,y,z], [x,y,z] ]
-function updateCollisions(frame, cs, tris, es, ps) {
-  var collisionPoint = [0, 0, 0] 
+function updateCollisions(frame, cs, tris, normals, es, ps) {
+  var collisionPoint = [ 0, 0, 0 ] 
   var collides = false
   var dir = [ 0, 0, 0 ]
   var dP = 0
   var toContact = 0
-  var est, pos
+  var est, pos, normal
 
   for (var i = 0; i < ps.length; i += 3) {
     pos = ps.slice(i, i + 3)
@@ -67,16 +67,25 @@ function updateCollisions(frame, cs, tris, es, ps) {
       
       if (collides) {
         toContact = V3.squaredDistance(collisionPoint, pos)
-        if (toContact <= dP)
-          console.log("it collides", frame, i)
+        if (toContact <= dP) {
+          normal = normals.slice(i, i + 3)
+          qc = collisionPoint.slice(0, 3)
+          cs.push({
+            i: i, 
+            normal: normal,
+            qc: qc
+          })
+          console.log("it collides", frame, i / 3)
+        }
       }
     }
   }
 }
 
-function projectConstraints(iterations, estimates, ws, dcs) {
+function projectConstraints(iterations, estimates, ws, ccs, dcs) {
   var inviterations = 1 / iterations
   var distanceConstraintCount = dcs.length
+  var collisionConstraintCount = ccs.length
   var i = 0
   var c, d
   var i1, i2
@@ -92,7 +101,12 @@ function projectConstraints(iterations, estimates, ws, dcs) {
   var w1, w2
 
   while (iterations-- > 0) {
-    // these are all distance constraints
+    i = 0
+    while (i < collisionConstraintCount) {
+      i++ 
+    }
+
+    i = 0
     while (i < distanceConstraintCount) {
       c = dcs[i++]
       d = c.d
@@ -111,10 +125,11 @@ function projectConstraints(iterations, estimates, ws, dcs) {
       dy = y1 - y2
       dz = z1 - z2
       dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
-      distdiff = dist - d
-      // inequality constraint
+      distdiff = dist - d // the distance constraint function
+
       if (distdiff < 0) 
         continue
+
       dirx = dx / dist
       diry = dy / dist
       dirz = dz / dist

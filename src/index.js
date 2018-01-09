@@ -45,6 +45,7 @@ const t2 = [ 0, -S, -S ]
 const t3 = [ 0, -S, S ]
 const tri = [ t1, t2, t3 ]
 const tris = [ tri ]
+const normals = []
 
 positions[0].set(p1, 0)
 positions[0].set(p2, 3)
@@ -52,7 +53,19 @@ positions[0].set(p2, 3)
 invmasses[0] = 0
 invmasses[1] = 1
 
-distanceConstraints.push({ i1: 0, i2: 1, d: SPREAD, k: 1 })
+distanceConstraints.push({ i1: 0, i2: 1, d: SPREAD, k: .01 })
+
+// calculate normals
+var e1 = [ 0, 0, 0 ]
+var e2 = [ 0, 0, 0 ]
+var n = [ 0, 0, 0 ]
+for (const t of tris) {
+  V3.subtract(e1, t[0], t[1])
+  V3.subtract(e2, t[0], t[2])
+  V3.cross(n, e1, e2)
+  V3.normalize(n, n)
+  normals.push([ n[0], n[1], n[2] ])
+}
 
 const invmassbuffer = regl.buffer({ 
   data: invmasses, 
@@ -113,8 +126,9 @@ setTimeout(function () {
         ii = tmp
         applyExternalForces(DT, DAMPING_FACTOR, G, invmasses, velocities)
         estimatePositions(DT, positions[ii], positions[i], velocities)
-        updateCollisions(tick, collisionConstraints, tris, positions[ii], positions[i])
-        projectConstraints(ITERATION_COUNT, positions[ii], invmasses, distanceConstraints)
+        collisionConstraints.splice(0)
+        updateCollisions(tick, collisionConstraints, tris, normals, positions[ii], positions[i])
+        projectConstraints(ITERATION_COUNT, positions[ii], invmasses, collisionConstraints, distanceConstraints)
         updateVelocities(DT, positions[ii], positions[i], velocities)
         t += DT
         acc -= DT
@@ -135,3 +149,5 @@ setTimeout(function () {
 
 window.paused = false
 window.positions = positions
+window.collisionConstraints = collisionConstraints
+
