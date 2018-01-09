@@ -11,7 +11,6 @@ function applyExternalForces(dt, DAMPING_FACTOR, GRAVITY, ws, vs) {
   const GDT = GRAVITY * dt
   const count = vs.length / 3
 
-  // unsure if the access pattern below is the fastest possible
   for (var i = 0, o; i < count; i++) {
     o = i * 3 + 1
     vs[o] *= DAMPING_FACTOR 
@@ -20,8 +19,8 @@ function applyExternalForces(dt, DAMPING_FACTOR, GRAVITY, ws, vs) {
 }
 
 function estimatePositions(dt, estimates, ps, vs) {
-  var i = 0
   var particleCount = estimates.length
+  var i = 0
 
   while (i < particleCount) {
     estimates[i] = ps[i] + dt * vs[i++]
@@ -54,13 +53,17 @@ function updateCollisions(frame, cs, tris, normals, es, ps) {
   var toContact = 0
   var est, pos, normal
 
+  // for all particles
   for (var i = 0; i < ps.length; i += 3) {
     pos = ps.slice(i, i + 3)
     est = es.slice(i, i + 3)
+    // position delta
     dP = V3.squaredDistance(est, pos)
+    // change vector
     V3.subtract(dir, est, pos)
     V3.normalize(dir, dir)
 
+    // for all triangles
     for (var j = 0; j < tris.length; j++) {
       tri = tris[j]
       collides = rayTriangleIntersection(collisionPoint, pos, dir, tri)
@@ -70,12 +73,8 @@ function updateCollisions(frame, cs, tris, normals, es, ps) {
         if (toContact <= dP) {
           normal = normals.slice(i, i + 3)
           qc = collisionPoint.slice(0, 3)
-          cs.push({
-            i: i, 
-            normal: normal,
-            qc: qc
-          })
-          console.log("it collides", frame, i / 3)
+
+          cs.push({ i: i / 3, normal, qc })
         }
       }
     }

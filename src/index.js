@@ -34,11 +34,11 @@ const positions = [
 const distanceConstraintLines = new Float32Array(PARTICLE_COUNT * 2 * 3)
 const distanceConstraints = []
 const collisionConstraints = []
+const impacts = []
 
 const SPREAD = 1
 const p1 = [ 0, SPREAD, 0 ]
 const p2 = [ SPREAD, SPREAD, 0 ]
-const LONG_D = Math.sqrt(SPREAD * SPREAD + SPREAD * SPREAD)
 const S = .5
 const t1 = [ 0, S, 0 ]
 const t2 = [ 0, -S, -S ]
@@ -96,6 +96,13 @@ const distanceConstraintProps = {
   color: [ .2, .4, .1, 1 ],
   primitive: "lines"
 }
+const impactProps = {
+  positions: impacts,
+  count: 0,
+  size: 20,
+  color: [ .1, .8, .8, 1],
+  primitive: "points"
+}
 const meshProps = {
   positions: tris[0],
   count: 3,
@@ -139,10 +146,19 @@ setTimeout(function () {
     distanceConstraintBuffer.subdata(distanceConstraintLines)
     positionbuffer.subdata(positions[ii])
     distanceConstraintProps.count = count
+
+    // impacts.splice(0)
+    for (const cc of collisionConstraints) {
+      impacts.push(cc.qc)
+    }
+    console.log(impacts.length)
+    impactProps.count = impacts.length
+    impactProps.positions = impacts
     camera(function (c) {
       render(particleProps)
       render(meshProps)
       render(distanceConstraintProps)
+      render(impactProps)
     })
   })
 }, INIT_TIME)
