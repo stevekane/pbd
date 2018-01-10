@@ -22,7 +22,7 @@ const camera = Camera(regl, {
 })
 const render = Render(regl)
 const ITERATION_COUNT = 10
-const PARTICLE_COUNT = 2
+const PARTICLE_COUNT = 4
 const DAMPING_FACTOR = .98
 const G = -10
 const invmasses = new Float32Array(PARTICLE_COUNT)
@@ -36,10 +36,12 @@ const distanceConstraints = []
 const collisionConstraints = []
 const impacts = []
 
-const SPREAD = 1
+const SPREAD = .2
 const p1 = [ 0, SPREAD, 0 ]
-const p2 = [ SPREAD, SPREAD, 0 ]
-const S = .5
+const p2 = [ -SPREAD, SPREAD, 0 ]
+const p3 = [ -2 * SPREAD, SPREAD, 0 ]
+const p4 = [ -3 * SPREAD, SPREAD, 0 ]
+const S = 1
 const t1 = [ 0, S, 0 ]
 const t2 = [ 0, -S, -S ]
 const t3 = [ 0, -S, S ]
@@ -49,22 +51,29 @@ const normals = []
 
 positions[0].set(p1, 0)
 positions[0].set(p2, 3)
+positions[0].set(p3, 6)
+positions[0].set(p4, 9)
 
 invmasses[0] = 0
 invmasses[1] = 1
+invmasses[2] = 1
+invmasses[3] = 1
 
-distanceConstraints.push({ i1: 0, i2: 1, d: SPREAD, k: .01 })
+distanceConstraints.push({ i1: 0, i2: 1, d: SPREAD, k: .1 })
+distanceConstraints.push({ i1: 1, i2: 2, d: SPREAD, k: .1 })
+distanceConstraints.push({ i1: 2, i2: 3, d: SPREAD, k: .1 })
 
 // calculate normals
 var e1 = [ 0, 0, 0 ]
 var e2 = [ 0, 0, 0 ]
 var n = [ 0, 0, 0 ]
+
 for (const t of tris) {
   V3.subtract(e1, t[0], t[1])
   V3.subtract(e2, t[0], t[2])
   V3.cross(n, e1, e2)
   V3.normalize(n, n)
-  normals.push([ n[0], n[1], n[2] ])
+  normals.push(n[0], n[1], n[2])
 }
 
 const invmassbuffer = regl.buffer({ 
@@ -126,7 +135,7 @@ setTimeout(function () {
     currentTime = newTime
 
     if (!window.paused) {
-      acc = acc + frameTime
+      acc += frameTime
       while (acc >= DT) {
         tmp = i
         i = ii
@@ -134,26 +143,38 @@ setTimeout(function () {
         applyExternalForces(DT, DAMPING_FACTOR, G, invmasses, velocities)
         estimatePositions(DT, positions[ii], positions[i], velocities)
         collisionConstraints.splice(0)
-        updateCollisions(tick, collisionConstraints, tris, normals, positions[ii], positions[i])
-        projectConstraints(ITERATION_COUNT, positions[ii], invmasses, collisionConstraints, distanceConstraints)
+        updateCollisions(
+          tick, 
+          collisionConstraints, 
+          tris, 
+          normals, 
+          positions[ii], 
+          positions[i])
+        projectConstraints(
+          ITERATION_COUNT, 
+          positions[ii], 
+          invmasses, 
+          collisionConstraints, 
+          distanceConstraints)
         updateVelocities(DT, positions[ii], positions[i], velocities)
         t += DT
         acc -= DT
       }
     }
 
-    count = updateDistanceConstraintLines(positions[ii], distanceConstraints, distanceConstraintLines)
-    distanceConstraintBuffer.subdata(distanceConstraintLines)
-    positionbuffer.subdata(positions[ii])
-    distanceConstraintProps.count = count
-
-    // impacts.splice(0)
     for (const cc of collisionConstraints) {
       impacts.push(cc.qc)
     }
-    console.log(impacts.length)
     impactProps.count = impacts.length
     impactProps.positions = impacts
+
+    count = updateDistanceConstraintLines(positions[ii], distanceConstraints, distanceConstraintLines)
+    distanceConstraintBuffer.subdata(distanceConstraintLines)
+    distanceConstraintProps.count = count
+
+    positionbuffer.subdata(positions[ii])
+
+
     camera(function (c) {
       render(particleProps)
       render(meshProps)
@@ -166,4 +187,3 @@ setTimeout(function () {
 window.paused = false
 window.positions = positions
 window.collisionConstraints = collisionConstraints
-
