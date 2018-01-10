@@ -10,10 +10,13 @@ const GRAVITY = [ 0, -10, 0 ]
 const DAMPING = .98
 const COLOR_1 = [ 0, 0, 1, 1 ]
 const COLOR_2 = [ 1, 0, 0, 1 ]
+const COLOR_3 = [ 0, 1, 0, 1 ]
 const ITERATION_COUNT = 10
 
 const constraints = {
-  distances: [],
+  distances: [
+    { i1: 0, i2: 1, d: 1, k: .1 } 
+  ],
   collisions: []
 }
 const points = [
@@ -41,6 +44,12 @@ function update() {
 }
 
 function draw() {
+  const positions = constraints.distances.reduce(function (cs, c) {
+    cs.push(points[c.i1].position)
+    cs.push(points[c.i2].position)
+    return cs
+  }, [])
+
   render({
     positions: points.map(p => p.position),
     count: points.length,
@@ -52,6 +61,12 @@ function draw() {
     count: 3,
     color: COLOR_2,
     primitive: "triangles"
+  })
+  render({
+    positions: positions,
+    count: constraints.distances.length * 2,
+    color: COLOR_3,
+    primitive: "lines"
   })
 }
 
