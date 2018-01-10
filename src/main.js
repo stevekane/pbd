@@ -1,18 +1,22 @@
 const regl = require("regl")()
-const camera = require("regl-camera")(regl, { distance: 4, theta: Math.PI / 3 })
+const camera = require("regl-camera")(regl, { distance: 6, theta: 0 })
 const V3 = require("gl-vec3")
 const solve = require("./solving")
 const render = require("./rendering")(regl)
+const { normal } = require("./triangles")
 
+const AXES_LENGTH = 10
 const INIT_DELAY = 100
 const DT = 1 / 60
 const GRAVITY = [ 0, -10, 0 ]
 const DAMPING = .98
-const COLOR_1 = [ 0, 0, 1, 1 ]
-const COLOR_2 = [ 1, 0, 0, 1 ]
-const COLOR_3 = [ 0, 1, 0, 1 ]
+const COLOR_1 = [ .9, .34, .2, 1 ]
+const COLOR_2 = [ .1, .91, .24, 1 ]
+const COLOR_3 = [ .2, .23, .7, 1 ]
+const RED = [ 1, 0, 0, 1 ]
+const GREEN = [ 0, 1, 0, 1 ]
+const BLUE = [ 0, 0, 1, 1 ]
 const ITERATION_COUNT = 10
-
 
 const constraints = {
   distances: [
@@ -31,9 +35,11 @@ const points = [
   new Point(-2, 0, -1, 1),
   new Point(-2, 0, 1, 1)
 ]
-const triangles = [
-  [ [ 0, 1, 0 ], [ 0, -1, 1 ], [ 0, -1, -1 ] ]
+const meshes = [
+  new Mesh([ [ 0, 1, 0 ], [ 0, -1, 1 ], [ 0, -1, -1 ] ]) // triangle
 ]
+
+console.log(meshes[0])
 
 function Point(x, y, z, inverseMass) {
   this.inverseMass = inverseMass
@@ -42,12 +48,21 @@ function Point(x, y, z, inverseMass) {
   this.predicted = [ 0, 0, 0 ]
 }
 
+function Mesh(triangles) {
+  this.triangles = triangles
+  this.normals = []
+
+  for (var i = 0; i < triangles.length; i += 3) {
+    this.normals.push(normal(triangles.slice(i, 3)))
+  }
+}
+
 function init() {
   regl.frame(update)
 }
 
 function update() {
-  solve(DT, ITERATION_COUNT, DAMPING, GRAVITY, constraints, points)
+  solve(DT, ITERATION_COUNT, DAMPING, GRAVITY, constraints, meshes, points)
   camera(draw)
 }
 
@@ -58,6 +73,14 @@ function draw() {
     return cs
   }, [])
 
+  for (const m of meshes) {
+    render({
+      positions: m.triangles,
+      count: m.triangles.length,
+      color: COLOR_2,
+      primitive: "triangles"
+    })
+  }
   render({
     positions: points.map(p => p.position),
     count: points.length,
@@ -65,15 +88,28 @@ function draw() {
     primitive: "points"
   })
   render({
-    positions: triangles[0],
-    count: 3,
-    color: COLOR_2,
-    primitive: "triangles"
-  })
-  render({
     positions: positions,
     count: constraints.distances.length * 2,
     color: COLOR_3,
+    primitive: "lines"
+  })
+  // axes
+  render({
+    positions: [ [ 0, 0, 0 ], [ AXES_LENGTH, 0, 0 ] ],
+    count: 2,
+    color: RED,
+    primitive: "lines"
+  })
+  render({
+    positions: [ [ 0, 0, 0 ], [ 0, AXES_LENGTH, 0 ] ],
+    count: 2,
+    color: GREEN,
+    primitive: "lines"
+  })
+  render({
+    positions: [ [ 0, 0, 0 ], [ 0, 0, AXES_LENGTH ] ],
+    count: 2,
+    color: BLUE,
     primitive: "lines"
   })
 }

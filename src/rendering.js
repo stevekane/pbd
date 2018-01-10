@@ -1,11 +1,14 @@
-module.exports = function (regl) {
+module.exports = render
+
+function render (regl) {
   return regl({
     vert: `
       precision mediump float;
 
       attribute vec3 position;
 
-      uniform mat4 view; uniform mat4 projection;
+      uniform mat4 view; 
+      uniform mat4 projection;
 
       uniform float size;
       uniform vec4 color;
