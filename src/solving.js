@@ -1,6 +1,7 @@
 const V3 = require("gl-vec3")
-const { scale, scaleAndAdd, subtract, copy } = require("gl-vec3")
+const { normalize, length, scale, scaleAndAdd, subtract, copy } = require("gl-vec3")
 const { rayTriangleIntersection } = require("./intersection")
+const { pow } = Math
 
 module.exports = solve
 
@@ -40,23 +41,33 @@ function updatePositions(points) {
   }
 }
 
-// COLLISION CONSTRAINT DERIVATION
-//
-// C(p)     = dot(p - qc, n)
-//          = (p - qc) * n
-//          = pn - qcn 
-//
-// dC(p)    = n
-// |dC(p)|  = 1
-// s        = dot(p - qc, n) / w
-// dP       = -s * w * dC(p)
-//          = -dot(p - qc, n) * n
 function projectConstraints(iterations, constraints, points) {
-  const { distances, collisions } = constraints
+  const { distances } = constraints
+  const inverseIterations = 1 / iterations
+  const dp = [ 0, 0, 0 ]
+  const dir = [ 0, 0, 0 ]
 
   for (var i = 0; i < iterations; i++) {
     for (const dc of distances) {
-    
+      const { i1, i2, restLength, stiffness } = dc
+      const p1 = points[i1]
+      const p2 = points[i2]
+      const dstiffness = 1 - pow(1 - stiffness, inverseIterations)
+
+      subtract(dp, p1.predicted, p2.predicted)
+
+      const dist = length(dp)
+      const c = dist - restLength
+
+      normalize(dir, dp)
+
+      const inverseMassSum = p1.inverseMass + p2.inverseMass
+      const f = dstiffness * c / inverseMassSum
+      const f1 = -p1.inverseMass * f
+      const f2 = p2.inverseMass * f
+
+      scaleAndAdd(p1.predicted, p1.predicted, dir, f1)
+      scaleAndAdd(p2.predicted, p2.predicted, dir, f2)
     }
   }
 }

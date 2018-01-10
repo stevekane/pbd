@@ -13,15 +13,18 @@ const COLOR_2 = [ 1, 0, 0, 1 ]
 const COLOR_3 = [ 0, 1, 0, 1 ]
 const ITERATION_COUNT = 10
 
+
 const constraints = {
   distances: [
-    { i1: 0, i2: 1, d: 1, k: .1 } 
+    { i1: 0, i2: 1, restLength: 1, stiffness: .1 },
+    { i1: 1, i2: 2, restLength: 1, stiffness: .1 } 
   ],
   collisions: []
 }
 const points = [
   new Point(0, 0, 0, 0),
-  new Point(0, -1, 0, 1)
+  new Point(-1, 0, 0, 1),
+  new Point(-2, 0, 0, 1)
 ]
 const triangles = [
   [ [ 0, 1, 0 ], [ 0, -1, 1 ], [ 0, -1, -1 ] ]
@@ -70,4 +73,6 @@ function draw() {
   })
 }
 
+window.points = points
+window.constraints = constraints
 setTimeout(init, INIT_DELAY)
