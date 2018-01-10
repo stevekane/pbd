@@ -6,7 +6,7 @@ const render = require("./rendering")(regl)
 
 const INIT_DELAY = 100
 const DT = 1 / 60
-const GRAVITY = -10
+const GRAVITY = [ 0, -10, 0 ]
 const DAMPING = .98
 const COLOR_1 = [ 0, 0, 1, 1 ]
 const ITERATION_COUNT = 10

@@ -4,9 +4,15 @@ const { rayTriangleIntersection } = require("./intersection")
 
 module.exports = solve
 
-function applyExternalForces(dt, damping, gravity, points) {
+function applyExternalForces(dt, gravity, points) {
   for (const { velocity, inverseMass } of points) {
-    velocity[1] = velocity[1] * damping + gravity * dt * inverseMass
+    scaleAndAdd(velocity, velocity, gravity, dt * inverseMass)
+  }
+}
+
+function dampVelocity(damping, points) {
+  for (const { velocity } of points) {
+    scale(velocity, velocity, damping) 
   }
 }
 
@@ -56,7 +62,8 @@ function projectConstraints(iterations, constraints, points) {
 }
 
 function solve(dt, iterationCount, damping, gravity, constraints, points) {
-  applyExternalForces(dt, damping, gravity, points)
+  applyExternalForces(dt, gravity, points)
+  dampVelocity(damping, points)
   estimatePositions(dt, points)
   projectConstraints(iterationCount, constraints, points)
   updateVelocities(dt, points)
