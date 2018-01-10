@@ -1,4 +1,4 @@
-const { length, squaredDistance, scale, scaleAndAdd, subtract, copy } = require("gl-vec3")
+const { length, squaredDistance, scale, scaleAndAdd, subtract, copy, dot } = require("gl-vec3")
 const { rayTriangleIntersection } = require("./intersection")
 const { pow } = Math
 
@@ -45,11 +45,10 @@ function updatePositions(points) {
   }
 }
 
-// TODO: since these are line segments, we could do bounding box collision
-// checks first to eliminate segments more quickly
-const direction = [ 0, 0, 0 ]
-const hitPoint = [ 0, 0, 0 ]
 function generateCollisionConstraints(constraints, meshes, points) {
+  const direction = [ 0, 0, 0 ]
+  const hitPoint = [ 0, 0, 0 ]
+
   for (var i = 0; i < points.length; i++) { 
     const { position, predicted } = points[i]
 
@@ -59,13 +58,18 @@ function generateCollisionConstraints(constraints, meshes, points) {
         const triangle = triangles.slice(j * 3, 3)
         const normal = normals[j]
 
+        // normal is same direction as motion
+        if (dot(normal, direction) > 0)
+          continue
+
+        // didn't intersect triangle
         if (!rayTriangleIntersection(hitPoint, position, direction, triangle))
           continue
 
-        //TODO: need to check if the dist to hitPoint is less than direction
         const toSurface = squaredDistance(hitPoint, position)
         const toPredicted = squaredDistance(predicted, position)
 
+        // too far away
         if (toSurface > toPredicted)
           continue
 
@@ -79,11 +83,11 @@ function generateCollisionConstraints(constraints, meshes, points) {
   }
 }
 
-const dp = [ 0, 0, 0 ]
-const dir = [ 0, 0, 0 ]
 function projectConstraints(iterations, constraints, points) {
   const { distances } = constraints
   const inverseIterations = 1 / iterations
+  const dp = [ 0, 0, 0 ]
+  const dir = [ 0, 0, 0 ]
 
   for (var i = 0; i < iterations; i++) {
     for (const dc of distances) {
