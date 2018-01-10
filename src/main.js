@@ -9,6 +9,7 @@ const DT = 1 / 60
 const GRAVITY = [ 0, -10, 0 ]
 const DAMPING = .98
 const COLOR_1 = [ 0, 0, 1, 1 ]
+const COLOR_2 = [ 1, 0, 0, 1 ]
 const ITERATION_COUNT = 10
 
 const constraints = {
@@ -18,6 +19,9 @@ const constraints = {
 const points = [
   new Point(0, 0, 0, 0),
   new Point(0, -1, 0, 1)
+]
+const triangles = [
+  [ [ 0, 1, 0 ], [ 0, -1, 1 ], [ 0, -1, -1 ] ]
 ]
 
 function Point(x, y, z, inverseMass) {
@@ -42,6 +46,12 @@ function draw() {
     count: points.length,
     color: COLOR_1,
     primitive: "points"
+  })
+  render({
+    positions: triangles[0],
+    count: 3,
+    color: COLOR_2,
+    primitive: "triangles"
   })
 }
 
