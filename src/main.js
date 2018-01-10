@@ -16,15 +16,20 @@ const ITERATION_COUNT = 10
 
 const constraints = {
   distances: [
-    { i1: 0, i2: 1, restLength: 1, stiffness: .1 },
-    { i1: 1, i2: 2, restLength: 1, stiffness: .1 } 
+    { i1: 0, i2: 1, restLength: .5, stiffness: .1 },
+    { i1: 1, i2: 2, restLength: .5, stiffness: .1 }, 
+    { i1: 2, i2: 3, restLength: .25, stiffness: .1 }, 
+    { i1: 2, i2: 4, restLength: .25, stiffness: .1 },
+    { i1: 3, i2: 4, restLength: .25, stiffness: .1 } 
   ],
   collisions: []
 }
 const points = [
   new Point(0, 0, 0, 0),
   new Point(-1, 0, 0, 1),
-  new Point(-2, 0, 0, 1)
+  new Point(-2, 0, 0, 1),
+  new Point(-2, 0, -1, 1),
+  new Point(-2, 0, 1, 1)
 ]
 const triangles = [
   [ [ 0, 1, 0 ], [ 0, -1, 1 ], [ 0, -1, -1 ] ]
