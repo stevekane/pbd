@@ -1,6 +1,9 @@
 const regl = require("regl")()
-const camera = require("regl-camera")(regl, { distance: 6, theta: 0 })
-const V3 = require("gl-vec3")
+const camera = require("regl-camera")(regl, { 
+  distance: 6, 
+  theta: Math.PI / 6,
+  phi: Math.PI / 6
+})
 const solve = require("./solving")
 const render = require("./rendering")(regl)
 const { normal } = require("./triangles")
@@ -30,10 +33,10 @@ const constraints = {
 }
 const points = [
   new Point(0, 0, 0, 0),
-  new Point(-1, 0, 0, 1),
-  new Point(-2, 0, 0, 1),
-  new Point(-2, 0, -1, 1),
-  new Point(-2, 0, 1, 1)
+  new Point(1, 0, 0, 1),
+  new Point(2, 0, 0, 1),
+  new Point(2, 0, -1, 1),
+  new Point(2, 0, 1, 1)
 ]
 const meshes = [
   new Mesh([ [ 0, 1, 0 ], [ 0, -1, 1 ], [ 0, -1, -1 ] ]) // triangle
