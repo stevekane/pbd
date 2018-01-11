@@ -46,23 +46,29 @@ function updatePositions(points) {
 }
 
 function perpendicularTo([ x, y, z ]) {
-  let a = 1, b = 1 
-  let c = (-x * a - y * b) / z
-  let out = [ a, b, c ]
+  let out 
+
+  if ( x != 0 )
+    out = [ (-y - z) / x, 1, 1 ]
+  else if (y != 0)
+    out = [ 1, (-x - z) / y, 1 ]
+  else if (z != 0)
+    out = [ 1, (-x - y) / z, 1 ]
+  else
+    return [ 0, 0, 0 ]
 
   normalize(out, out)
   return out
 }
 
 function adjustVelocities(constraints, points) {
-  const tangent = [ 0, 0, 0 ]
   const parallel = [ 0, 0, 0 ]
   const perpendicular = [ 0, 0, 0 ]
 
   // TODO: currently no material properties for friction
   for (const { i, normal } of constraints.collisions) {
     let { velocity } = points[i]
-    let tarngent = perpendicularTo(normal)
+    let tangent = perpendicularTo(normal)
     let parallelMagnitude = dot(normal, velocity)
     let perpendicularMagnitude = dot(tangent, velocity)
 
