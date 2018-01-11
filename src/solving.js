@@ -1,4 +1,4 @@
-const { length, squaredDistance, scale, scaleAndAdd, subtract, copy, dot } = require("gl-vec3")
+const { length, squaredDistance, normalize, scale, scaleAndAdd, add, subtract, copy, dot } = require("gl-vec3")
 const { rayTriangleIntersection } = require("./intersection")
 const { pow } = Math
 
@@ -45,6 +45,36 @@ function updatePositions(points) {
   }
 }
 
+function perpendicularTo([ x, y, z ]) {
+  let a = 1, b = 1 
+  let c = (-x * a - y * b) / z
+  let out = [ a, b, c ]
+
+  normalize(out, out)
+  return out
+}
+
+function adjustVelocities(constraints, points) {
+  const tangent = [ 0, 0, 0 ]
+  const parallel = [ 0, 0, 0 ]
+  const perpendicular = [ 0, 0, 0 ]
+
+  // TODO: currently no material properties for friction
+  for (const { i, normal } of constraints.collisions) {
+    let { velocity } = points[i]
+    let tarngent = perpendicularTo(normal)
+    let parallelMagnitude = dot(normal, velocity)
+    let perpendicularMagnitude = dot(tangent, velocity)
+
+    // reflect motion parallel to surface
+    scale(parallel, normal, -parallelMagnitude)
+    copy(velocity, parallel)
+    // damp motion perpendicular to surface for friction 
+    scale(perpendicular, tangent, perpendicularMagnitude)
+    add(velocity, velocity, perpendicular)
+  }
+}
+
 function generateCollisionConstraints(constraints, meshes, points) {
   const direction = [ 0, 0, 0 ]
   const hitPoint = [ 0, 0, 0 ]
@@ -84,23 +114,32 @@ function generateCollisionConstraints(constraints, meshes, points) {
 }
 
 function projectConstraints(iterations, constraints, points) {
-  const { distances } = constraints
+  const { distances, collisions } = constraints
   const inverseIterations = 1 / iterations
+  // for distances
   const dp = [ 0, 0, 0 ]
   const dir = [ 0, 0, 0 ]
+  // for collisions
+  const fromSurface = [ 0, 0, 0 ]
 
-  for (var i = 0; i < iterations; i++) {
-    for (const dc of distances) {
-      const { i1, i2, restLength, stiffness } = dc
-      const p1 = points[i1]
-      const p2 = points[i2]
-      const dstiffness = 1 - pow(1 - stiffness, inverseIterations)
+
+  while (iterations--) {
+    for (const { i1, i2, restLength, stiffness } of distances) {
+      let p1 = points[i1]
+      let p2 = points[i2]
+      let dstiffness = 1 - pow(1 - stiffness, inverseIterations)
+      let dist
+      let c
+      let inverseMassSum
+      let f
+      let f1
+      let f2
 
       subtract(dp, p1.predicted, p2.predicted)
 
       // |p1 - p2| - d
-      const dist = length(dp)
-      const c = dist - restLength
+      dist = length(dp)
+      c = dist - restLength
 
       // if we are already satisfied do nothing
       if (c > -Number.EPSILON && c < Number.EPSILON)
@@ -109,15 +148,36 @@ function projectConstraints(iterations, constraints, points) {
       // normalize to get unit vector for direction
       scale(dir, dp, 1 / dist)
 
-      const inverseMassSum = p1.inverseMass + p2.inverseMass
-      const f = dstiffness * c / inverseMassSum
-      const f1 = -p1.inverseMass * f
-      const f2 = p2.inverseMass * f
+      inverseMassSum = p1.inverseMass + p2.inverseMass
+      f = dstiffness * c / inverseMassSum
+      f1 = -p1.inverseMass * f
+      f2 = p2.inverseMass * f
 
       // dp1 = k * -w1 / (w1 + w2) * (|p1 - p2| - d) * dir
       scaleAndAdd(p1.predicted, p1.predicted, dir, f1)
       // dp2 = k * w2 / (w1 + w2) * (|p1 - p2| - d) * dir
       scaleAndAdd(p2.predicted, p2.predicted, dir, f2)
+    }
+
+    for (const { i, normal, surfacePoint } of collisions) {
+      let p = points[i]
+      let c
+      let dc
+      
+      // k = 1
+      // s = C(p) / w
+      // dp = -s * w * dC(p)
+      // dp = k * -w / w * dot(p - qc, n) * n
+      //    = -k * dot(pqc, n) * n
+      //    = -dot(pqc, n) * n
+      subtract(fromSurface, p.predicted, surfacePoint)
+      c = dot(fromSurface, normal)
+
+      if (c >= 0)
+        continue
+
+      dc = normal
+      scaleAndAdd(p.predicted, p.predicted, dc, -c)
     }
   }
 }
@@ -128,10 +188,8 @@ function solve(dt, iterationCount, damping, gravity, constraints, meshes, points
   estimatePositions(dt, points)
   constraints.collisions.splice(0)
   generateCollisionConstraints(constraints, meshes, points)
-  if (constraints.collisions.length)
-    console.log(JSON.stringify(constraints.collisions, null, 2))
   projectConstraints(iterationCount, constraints, points)
   updateVelocities(dt, points)
   updatePositions(points)
-  // updateVelocities(points) // apply restitution etc
+  adjustVelocities(constraints, points) // apply restitution etc
 }

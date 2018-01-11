@@ -1,7 +1,7 @@
 const regl = require("regl")()
 const camera = require("regl-camera")(regl, { 
-  distance: 6, 
-  theta: Math.PI / 6,
+  distance: 10, 
+  theta: Math.PI / 3,
   phi: Math.PI / 6
 })
 const solve = require("./solving")
@@ -23,11 +23,9 @@ const ITERATION_COUNT = 10
 
 const constraints = {
   distances: [
-    { i1: 0, i2: 1, restLength: .5, stiffness: .1 },
-    { i1: 1, i2: 2, restLength: .5, stiffness: .1 }, 
-    { i1: 2, i2: 3, restLength: .25, stiffness: .1 }, 
-    { i1: 2, i2: 4, restLength: .25, stiffness: .1 },
-    { i1: 3, i2: 4, restLength: .25, stiffness: .1 } 
+    { i1: 0, i2: 1, restLength: 1, stiffness: .8 },
+    { i1: 1, i2: 2, restLength: 1, stiffness: .8 }, 
+    { i1: 2, i2: 3, restLength: 1, stiffness: .1 }, 
   ],
   collisions: []
 }
@@ -35,14 +33,11 @@ const points = [
   new Point(0, 0, 0, 0),
   new Point(1, 0, 0, 1),
   new Point(2, 0, 0, 1),
-  new Point(2, 0, -1, 1),
-  new Point(2, 0, 1, 1)
+  new Point(3, 0, 0, 1),
 ]
 const meshes = [
-  new Mesh([ [ 0, 1, 0 ], [ 0, -1, 1 ], [ 0, -1, -1 ] ]) // triangle
+  new Mesh([ [ 0, 4, 0 ], [ 0, -4, 4 ], [ 0, -4, -4 ] ]) // triangle
 ]
-
-console.log(meshes[0])
 
 function Point(x, y, z, inverseMass) {
   this.inverseMass = inverseMass
