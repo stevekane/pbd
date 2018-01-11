@@ -62,22 +62,16 @@ function perpendicularTo([ x, y, z ]) {
 }
 
 function adjustVelocities(constraints, points) {
-  const parallel = [ 0, 0, 0 ]
-  const perpendicular = [ 0, 0, 0 ]
+  const vt = [ 0, 0, 0 ]
+  const vn = [ 0, 0, 0 ]
 
-  // TODO: currently no material properties for friction
   for (const { i, normal } of constraints.collisions) {
     let { velocity } = points[i]
-    let tangent = perpendicularTo(normal)
-    let parallelMagnitude = dot(normal, velocity)
-    let perpendicularMagnitude = dot(tangent, velocity)
+    let mvn = dot(velocity, normal)
 
-    // reflect motion parallel to surface
-    scale(parallel, normal, -parallelMagnitude)
-    copy(velocity, parallel)
-    // damp motion perpendicular to surface for friction 
-    scale(perpendicular, tangent, perpendicularMagnitude)
-    add(velocity, velocity, perpendicular)
+    scale(vn, normal, mvn)
+    subtract(vt, velocity, vn)
+    scaleAndAdd(velocity, vt, vn, -1)
   }
 }
 
