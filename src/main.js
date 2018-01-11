@@ -11,7 +11,7 @@ const { normal } = require("./triangles")
 const AXES_LENGTH = 10
 const INIT_DELAY = 100
 const DT = 1 / 60
-const GRAVITY = [ 0, -10, 0 ] // TODO: setting gravity high causes collision to fail?
+const GRAVITY = [ 0, -100, 0 ]
 const DAMPING = .98
 const COLOR_1 = [ .9, .34, .2, 1 ]
 const COLOR_2 = [ .1, .91, .24, 1 ]
@@ -23,9 +23,9 @@ const ITERATION_COUNT = 10
 
 const constraints = {
   distances: [
-    { i1: 0, i2: 1, restLength: 1, stiffness: .1 },
-    { i1: 1, i2: 2, restLength: 1, stiffness: .1 }, 
-    { i1: 2, i2: 3, restLength: 1, stiffness: .1 }, 
+    { i1: 0, i2: 1, restLength: 1, stiffness: 1 },
+    { i1: 1, i2: 2, restLength: 1, stiffness: 1 }, 
+    { i1: 2, i2: 3, restLength: 1, stiffness: 1 }, 
   ],
   collisions: []
 }
