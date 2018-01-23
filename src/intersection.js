@@ -11,11 +11,11 @@ var s = d.subarray(9, 12)
 var q = d.subarray(12, 15)
 
 function rayTriangleIntersection(o, p, dir, tri) {
+  var p1 = tri[0]
+  var p2 = tri[1]
+  var p3 = tri[2]
   var a, f, u, dist
 
-  p1 = tri[0]
-  p2 = tri[1]
-  p3 = tri[2]
 
   subtract(e1, p2, p1)
   subtract(e2, p3, p1)
