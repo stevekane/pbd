@@ -7,6 +7,1351 @@
 <body></body>
 <script>
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+module.exports = identity;
+
+/**
+ * Set a mat4 to the identity matrix
+ *
+ * @param {mat4} out the receiving matrix
+ * @returns {mat4} out
+ */
+function identity(out) {
+    out[0] = 1;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = 1;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = 1;
+    out[11] = 0;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = 0;
+    out[15] = 1;
+    return out;
+};
+},{}],2:[function(require,module,exports){
+var identity = require('./identity');
+
+module.exports = lookAt;
+
+/**
+ * Generates a look-at matrix with the given eye position, focal point, and up axis
+ *
+ * @param {mat4} out mat4 frustum matrix will be written into
+ * @param {vec3} eye Position of the viewer
+ * @param {vec3} center Point the viewer is looking at
+ * @param {vec3} up vec3 pointing up
+ * @returns {mat4} out
+ */
+function lookAt(out, eye, center, up) {
+    var x0, x1, x2, y0, y1, y2, z0, z1, z2, len,
+        eyex = eye[0],
+        eyey = eye[1],
+        eyez = eye[2],
+        upx = up[0],
+        upy = up[1],
+        upz = up[2],
+        centerx = center[0],
+        centery = center[1],
+        centerz = center[2];
+
+    if (Math.abs(eyex - centerx) < 0.000001 &&
+        Math.abs(eyey - centery) < 0.000001 &&
+        Math.abs(eyez - centerz) < 0.000001) {
+        return identity(out);
+    }
+
+    z0 = eyex - centerx;
+    z1 = eyey - centery;
+    z2 = eyez - centerz;
+
+    len = 1 / Math.sqrt(z0 * z0 + z1 * z1 + z2 * z2);
+    z0 *= len;
+    z1 *= len;
+    z2 *= len;
+
+    x0 = upy * z2 - upz * z1;
+    x1 = upz * z0 - upx * z2;
+    x2 = upx * z1 - upy * z0;
+    len = Math.sqrt(x0 * x0 + x1 * x1 + x2 * x2);
+    if (!len) {
+        x0 = 0;
+        x1 = 0;
+        x2 = 0;
+    } else {
+        len = 1 / len;
+        x0 *= len;
+        x1 *= len;
+        x2 *= len;
+    }
+
+    y0 = z1 * x2 - z2 * x1;
+    y1 = z2 * x0 - z0 * x2;
+    y2 = z0 * x1 - z1 * x0;
+
+    len = Math.sqrt(y0 * y0 + y1 * y1 + y2 * y2);
+    if (!len) {
+        y0 = 0;
+        y1 = 0;
+        y2 = 0;
+    } else {
+        len = 1 / len;
+        y0 *= len;
+        y1 *= len;
+        y2 *= len;
+    }
+
+    out[0] = x0;
+    out[1] = y0;
+    out[2] = z0;
+    out[3] = 0;
+    out[4] = x1;
+    out[5] = y1;
+    out[6] = z1;
+    out[7] = 0;
+    out[8] = x2;
+    out[9] = y2;
+    out[10] = z2;
+    out[11] = 0;
+    out[12] = -(x0 * eyex + x1 * eyey + x2 * eyez);
+    out[13] = -(y0 * eyex + y1 * eyey + y2 * eyez);
+    out[14] = -(z0 * eyex + z1 * eyey + z2 * eyez);
+    out[15] = 1;
+
+    return out;
+};
+},{"./identity":1}],3:[function(require,module,exports){
+module.exports = perspective;
+
+/**
+ * Generates a perspective projection matrix with the given bounds
+ *
+ * @param {mat4} out mat4 frustum matrix will be written into
+ * @param {number} fovy Vertical field of view in radians
+ * @param {number} aspect Aspect ratio. typically viewport width/height
+ * @param {number} near Near bound of the frustum
+ * @param {number} far Far bound of the frustum
+ * @returns {mat4} out
+ */
+function perspective(out, fovy, aspect, near, far) {
+    var f = 1.0 / Math.tan(fovy / 2),
+        nf = 1 / (near - far);
+    out[0] = f / aspect;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = f;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = (far + near) * nf;
+    out[11] = -1;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = (2 * far * near) * nf;
+    out[15] = 0;
+    return out;
+};
+},{}],4:[function(require,module,exports){
+module.exports = add;
+
+/**
+ * Adds two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+function add(out, a, b) {
+    out[0] = a[0] + b[0]
+    out[1] = a[1] + b[1]
+    out[2] = a[2] + b[2]
+    return out
+}
+},{}],5:[function(require,module,exports){
+module.exports = angle
+
+var fromValues = require('./fromValues')
+var normalize = require('./normalize')
+var dot = require('./dot')
+
+/**
+ * Get the angle between two 3D vectors
+ * @param {vec3} a The first operand
+ * @param {vec3} b The second operand
+ * @returns {Number} The angle in radians
+ */
+function angle(a, b) {
+    var tempA = fromValues(a[0], a[1], a[2])
+    var tempB = fromValues(b[0], b[1], b[2])
+ 
+    normalize(tempA, tempA)
+    normalize(tempB, tempB)
+ 
+    var cosine = dot(tempA, tempB)
+
+    if(cosine > 1.0){
+        return 0
+    } else {
+        return Math.acos(cosine)
+    }     
+}
+
+},{"./dot":12,"./fromValues":14,"./normalize":23}],6:[function(require,module,exports){
+module.exports = clone;
+
+/**
+ * Creates a new vec3 initialized with values from an existing vector
+ *
+ * @param {vec3} a vector to clone
+ * @returns {vec3} a new 3D vector
+ */
+function clone(a) {
+    var out = new Float32Array(3)
+    out[0] = a[0]
+    out[1] = a[1]
+    out[2] = a[2]
+    return out
+}
+},{}],7:[function(require,module,exports){
+module.exports = copy;
+
+/**
+ * Copy the values from one vec3 to another
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the source vector
+ * @returns {vec3} out
+ */
+function copy(out, a) {
+    out[0] = a[0]
+    out[1] = a[1]
+    out[2] = a[2]
+    return out
+}
+},{}],8:[function(require,module,exports){
+module.exports = create;
+
+/**
+ * Creates a new, empty vec3
+ *
+ * @returns {vec3} a new 3D vector
+ */
+function create() {
+    var out = new Float32Array(3)
+    out[0] = 0
+    out[1] = 0
+    out[2] = 0
+    return out
+}
+},{}],9:[function(require,module,exports){
+module.exports = cross;
+
+/**
+ * Computes the cross product of two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+function cross(out, a, b) {
+    var ax = a[0], ay = a[1], az = a[2],
+        bx = b[0], by = b[1], bz = b[2]
+
+    out[0] = ay * bz - az * by
+    out[1] = az * bx - ax * bz
+    out[2] = ax * by - ay * bx
+    return out
+}
+},{}],10:[function(require,module,exports){
+module.exports = distance;
+
+/**
+ * Calculates the euclidian distance between two vec3's
+ *
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {Number} distance between a and b
+ */
+function distance(a, b) {
+    var x = b[0] - a[0],
+        y = b[1] - a[1],
+        z = b[2] - a[2]
+    return Math.sqrt(x*x + y*y + z*z)
+}
+},{}],11:[function(require,module,exports){
+module.exports = divide;
+
+/**
+ * Divides two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+function divide(out, a, b) {
+    out[0] = a[0] / b[0]
+    out[1] = a[1] / b[1]
+    out[2] = a[2] / b[2]
+    return out
+}
+},{}],12:[function(require,module,exports){
+module.exports = dot;
+
+/**
+ * Calculates the dot product of two vec3's
+ *
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {Number} dot product of a and b
+ */
+function dot(a, b) {
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+}
+},{}],13:[function(require,module,exports){
+module.exports = forEach;
+
+var vec = require('./create')()
+
+/**
+ * Perform some operation over an array of vec3s.
+ *
+ * @param {Array} a the array of vectors to iterate over
+ * @param {Number} stride Number of elements between the start of each vec3. If 0 assumes tightly packed
+ * @param {Number} offset Number of elements to skip at the beginning of the array
+ * @param {Number} count Number of vec3s to iterate over. If 0 iterates over entire array
+ * @param {Function} fn Function to call for each vector in the array
+ * @param {Object} [arg] additional argument to pass to fn
+ * @returns {Array} a
+ * @function
+ */
+function forEach(a, stride, offset, count, fn, arg) {
+        var i, l
+        if(!stride) {
+            stride = 3
+        }
+
+        if(!offset) {
+            offset = 0
+        }
+        
+        if(count) {
+            l = Math.min((count * stride) + offset, a.length)
+        } else {
+            l = a.length
+        }
+
+        for(i = offset; i < l; i += stride) {
+            vec[0] = a[i] 
+            vec[1] = a[i+1] 
+            vec[2] = a[i+2]
+            fn(vec, vec, arg)
+            a[i] = vec[0] 
+            a[i+1] = vec[1] 
+            a[i+2] = vec[2]
+        }
+        
+        return a
+}
+},{"./create":8}],14:[function(require,module,exports){
+module.exports = fromValues;
+
+/**
+ * Creates a new vec3 initialized with the given values
+ *
+ * @param {Number} x X component
+ * @param {Number} y Y component
+ * @param {Number} z Z component
+ * @returns {vec3} a new 3D vector
+ */
+function fromValues(x, y, z) {
+    var out = new Float32Array(3)
+    out[0] = x
+    out[1] = y
+    out[2] = z
+    return out
+}
+},{}],15:[function(require,module,exports){
+module.exports = {
+  create: require('./create')
+  , clone: require('./clone')
+  , angle: require('./angle')
+  , fromValues: require('./fromValues')
+  , copy: require('./copy')
+  , set: require('./set')
+  , add: require('./add')
+  , subtract: require('./subtract')
+  , multiply: require('./multiply')
+  , divide: require('./divide')
+  , min: require('./min')
+  , max: require('./max')
+  , scale: require('./scale')
+  , scaleAndAdd: require('./scaleAndAdd')
+  , distance: require('./distance')
+  , squaredDistance: require('./squaredDistance')
+  , length: require('./length')
+  , squaredLength: require('./squaredLength')
+  , negate: require('./negate')
+  , inverse: require('./inverse')
+  , normalize: require('./normalize')
+  , dot: require('./dot')
+  , cross: require('./cross')
+  , lerp: require('./lerp')
+  , random: require('./random')
+  , transformMat4: require('./transformMat4')
+  , transformMat3: require('./transformMat3')
+  , transformQuat: require('./transformQuat')
+  , rotateX: require('./rotateX')
+  , rotateY: require('./rotateY')
+  , rotateZ: require('./rotateZ')
+  , forEach: require('./forEach')
+}
+},{"./add":4,"./angle":5,"./clone":6,"./copy":7,"./create":8,"./cross":9,"./distance":10,"./divide":11,"./dot":12,"./forEach":13,"./fromValues":14,"./inverse":16,"./length":17,"./lerp":18,"./max":19,"./min":20,"./multiply":21,"./negate":22,"./normalize":23,"./random":24,"./rotateX":25,"./rotateY":26,"./rotateZ":27,"./scale":28,"./scaleAndAdd":29,"./set":30,"./squaredDistance":31,"./squaredLength":32,"./subtract":33,"./transformMat3":34,"./transformMat4":35,"./transformQuat":36}],16:[function(require,module,exports){
+module.exports = inverse;
+
+/**
+ * Returns the inverse of the components of a vec3
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a vector to invert
+ * @returns {vec3} out
+ */
+function inverse(out, a) {
+  out[0] = 1.0 / a[0]
+  out[1] = 1.0 / a[1]
+  out[2] = 1.0 / a[2]
+  return out
+}
+},{}],17:[function(require,module,exports){
+module.exports = length;
+
+/**
+ * Calculates the length of a vec3
+ *
+ * @param {vec3} a vector to calculate length of
+ * @returns {Number} length of a
+ */
+function length(a) {
+    var x = a[0],
+        y = a[1],
+        z = a[2]
+    return Math.sqrt(x*x + y*y + z*z)
+}
+},{}],18:[function(require,module,exports){
+module.exports = lerp;
+
+/**
+ * Performs a linear interpolation between two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @param {Number} t interpolation amount between the two inputs
+ * @returns {vec3} out
+ */
+function lerp(out, a, b, t) {
+    var ax = a[0],
+        ay = a[1],
+        az = a[2]
+    out[0] = ax + t * (b[0] - ax)
+    out[1] = ay + t * (b[1] - ay)
+    out[2] = az + t * (b[2] - az)
+    return out
+}
+},{}],19:[function(require,module,exports){
+module.exports = max;
+
+/**
+ * Returns the maximum of two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+function max(out, a, b) {
+    out[0] = Math.max(a[0], b[0])
+    out[1] = Math.max(a[1], b[1])
+    out[2] = Math.max(a[2], b[2])
+    return out
+}
+},{}],20:[function(require,module,exports){
+module.exports = min;
+
+/**
+ * Returns the minimum of two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+function min(out, a, b) {
+    out[0] = Math.min(a[0], b[0])
+    out[1] = Math.min(a[1], b[1])
+    out[2] = Math.min(a[2], b[2])
+    return out
+}
+},{}],21:[function(require,module,exports){
+module.exports = multiply;
+
+/**
+ * Multiplies two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+function multiply(out, a, b) {
+    out[0] = a[0] * b[0]
+    out[1] = a[1] * b[1]
+    out[2] = a[2] * b[2]
+    return out
+}
+},{}],22:[function(require,module,exports){
+module.exports = negate;
+
+/**
+ * Negates the components of a vec3
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a vector to negate
+ * @returns {vec3} out
+ */
+function negate(out, a) {
+    out[0] = -a[0]
+    out[1] = -a[1]
+    out[2] = -a[2]
+    return out
+}
+},{}],23:[function(require,module,exports){
+module.exports = normalize;
+
+/**
+ * Normalize a vec3
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a vector to normalize
+ * @returns {vec3} out
+ */
+function normalize(out, a) {
+    var x = a[0],
+        y = a[1],
+        z = a[2]
+    var len = x*x + y*y + z*z
+    if (len > 0) {
+        //TODO: evaluate use of glm_invsqrt here?
+        len = 1 / Math.sqrt(len)
+        out[0] = a[0] * len
+        out[1] = a[1] * len
+        out[2] = a[2] * len
+    }
+    return out
+}
+},{}],24:[function(require,module,exports){
+module.exports = random;
+
+/**
+ * Generates a random vector with the given scale
+ *
+ * @param {vec3} out the receiving vector
+ * @param {Number} [scale] Length of the resulting vector. If ommitted, a unit vector will be returned
+ * @returns {vec3} out
+ */
+function random(out, scale) {
+    scale = scale || 1.0
+
+    var r = Math.random() * 2.0 * Math.PI
+    var z = (Math.random() * 2.0) - 1.0
+    var zScale = Math.sqrt(1.0-z*z) * scale
+
+    out[0] = Math.cos(r) * zScale
+    out[1] = Math.sin(r) * zScale
+    out[2] = z * scale
+    return out
+}
+},{}],25:[function(require,module,exports){
+module.exports = rotateX;
+
+/**
+ * Rotate a 3D vector around the x-axis
+ * @param {vec3} out The receiving vec3
+ * @param {vec3} a The vec3 point to rotate
+ * @param {vec3} b The origin of the rotation
+ * @param {Number} c The angle of rotation
+ * @returns {vec3} out
+ */
+function rotateX(out, a, b, c){
+    var p = [], r=[]
+    //Translate point to the origin
+    p[0] = a[0] - b[0]
+    p[1] = a[1] - b[1]
+    p[2] = a[2] - b[2]
+
+    //perform rotation
+    r[0] = p[0]
+    r[1] = p[1]*Math.cos(c) - p[2]*Math.sin(c)
+    r[2] = p[1]*Math.sin(c) + p[2]*Math.cos(c)
+
+    //translate to correct position
+    out[0] = r[0] + b[0]
+    out[1] = r[1] + b[1]
+    out[2] = r[2] + b[2]
+
+    return out
+}
+},{}],26:[function(require,module,exports){
+module.exports = rotateY;
+
+/**
+ * Rotate a 3D vector around the y-axis
+ * @param {vec3} out The receiving vec3
+ * @param {vec3} a The vec3 point to rotate
+ * @param {vec3} b The origin of the rotation
+ * @param {Number} c The angle of rotation
+ * @returns {vec3} out
+ */
+function rotateY(out, a, b, c){
+    var p = [], r=[]
+    //Translate point to the origin
+    p[0] = a[0] - b[0]
+    p[1] = a[1] - b[1]
+    p[2] = a[2] - b[2]
+  
+    //perform rotation
+    r[0] = p[2]*Math.sin(c) + p[0]*Math.cos(c)
+    r[1] = p[1]
+    r[2] = p[2]*Math.cos(c) - p[0]*Math.sin(c)
+  
+    //translate to correct position
+    out[0] = r[0] + b[0]
+    out[1] = r[1] + b[1]
+    out[2] = r[2] + b[2]
+  
+    return out
+}
+},{}],27:[function(require,module,exports){
+module.exports = rotateZ;
+
+/**
+ * Rotate a 3D vector around the z-axis
+ * @param {vec3} out The receiving vec3
+ * @param {vec3} a The vec3 point to rotate
+ * @param {vec3} b The origin of the rotation
+ * @param {Number} c The angle of rotation
+ * @returns {vec3} out
+ */
+function rotateZ(out, a, b, c){
+    var p = [], r=[]
+    //Translate point to the origin
+    p[0] = a[0] - b[0]
+    p[1] = a[1] - b[1]
+    p[2] = a[2] - b[2]
+  
+    //perform rotation
+    r[0] = p[0]*Math.cos(c) - p[1]*Math.sin(c)
+    r[1] = p[0]*Math.sin(c) + p[1]*Math.cos(c)
+    r[2] = p[2]
+  
+    //translate to correct position
+    out[0] = r[0] + b[0]
+    out[1] = r[1] + b[1]
+    out[2] = r[2] + b[2]
+  
+    return out
+}
+},{}],28:[function(require,module,exports){
+module.exports = scale;
+
+/**
+ * Scales a vec3 by a scalar number
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the vector to scale
+ * @param {Number} b amount to scale the vector by
+ * @returns {vec3} out
+ */
+function scale(out, a, b) {
+    out[0] = a[0] * b
+    out[1] = a[1] * b
+    out[2] = a[2] * b
+    return out
+}
+},{}],29:[function(require,module,exports){
+module.exports = scaleAndAdd;
+
+/**
+ * Adds two vec3's after scaling the second operand by a scalar value
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @param {Number} scale the amount to scale b by before adding
+ * @returns {vec3} out
+ */
+function scaleAndAdd(out, a, b, scale) {
+    out[0] = a[0] + (b[0] * scale)
+    out[1] = a[1] + (b[1] * scale)
+    out[2] = a[2] + (b[2] * scale)
+    return out
+}
+},{}],30:[function(require,module,exports){
+module.exports = set;
+
+/**
+ * Set the components of a vec3 to the given values
+ *
+ * @param {vec3} out the receiving vector
+ * @param {Number} x X component
+ * @param {Number} y Y component
+ * @param {Number} z Z component
+ * @returns {vec3} out
+ */
+function set(out, x, y, z) {
+    out[0] = x
+    out[1] = y
+    out[2] = z
+    return out
+}
+},{}],31:[function(require,module,exports){
+module.exports = squaredDistance;
+
+/**
+ * Calculates the squared euclidian distance between two vec3's
+ *
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {Number} squared distance between a and b
+ */
+function squaredDistance(a, b) {
+    var x = b[0] - a[0],
+        y = b[1] - a[1],
+        z = b[2] - a[2]
+    return x*x + y*y + z*z
+}
+},{}],32:[function(require,module,exports){
+module.exports = squaredLength;
+
+/**
+ * Calculates the squared length of a vec3
+ *
+ * @param {vec3} a vector to calculate squared length of
+ * @returns {Number} squared length of a
+ */
+function squaredLength(a) {
+    var x = a[0],
+        y = a[1],
+        z = a[2]
+    return x*x + y*y + z*z
+}
+},{}],33:[function(require,module,exports){
+module.exports = subtract;
+
+/**
+ * Subtracts vector b from vector a
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+function subtract(out, a, b) {
+    out[0] = a[0] - b[0]
+    out[1] = a[1] - b[1]
+    out[2] = a[2] - b[2]
+    return out
+}
+},{}],34:[function(require,module,exports){
+module.exports = transformMat3;
+
+/**
+ * Transforms the vec3 with a mat3.
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the vector to transform
+ * @param {mat4} m the 3x3 matrix to transform with
+ * @returns {vec3} out
+ */
+function transformMat3(out, a, m) {
+    var x = a[0], y = a[1], z = a[2]
+    out[0] = x * m[0] + y * m[3] + z * m[6]
+    out[1] = x * m[1] + y * m[4] + z * m[7]
+    out[2] = x * m[2] + y * m[5] + z * m[8]
+    return out
+}
+},{}],35:[function(require,module,exports){
+module.exports = transformMat4;
+
+/**
+ * Transforms the vec3 with a mat4.
+ * 4th vector component is implicitly '1'
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the vector to transform
+ * @param {mat4} m matrix to transform with
+ * @returns {vec3} out
+ */
+function transformMat4(out, a, m) {
+    var x = a[0], y = a[1], z = a[2],
+        w = m[3] * x + m[7] * y + m[11] * z + m[15]
+    w = w || 1.0
+    out[0] = (m[0] * x + m[4] * y + m[8] * z + m[12]) / w
+    out[1] = (m[1] * x + m[5] * y + m[9] * z + m[13]) / w
+    out[2] = (m[2] * x + m[6] * y + m[10] * z + m[14]) / w
+    return out
+}
+},{}],36:[function(require,module,exports){
+module.exports = transformQuat;
+
+/**
+ * Transforms the vec3 with a quat
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the vector to transform
+ * @param {quat} q quaternion to transform with
+ * @returns {vec3} out
+ */
+function transformQuat(out, a, q) {
+    // benchmarks: http://jsperf.com/quaternion-transform-vec3-implementations
+
+    var x = a[0], y = a[1], z = a[2],
+        qx = q[0], qy = q[1], qz = q[2], qw = q[3],
+
+        // calculate quat * vec
+        ix = qw * x + qy * z - qz * y,
+        iy = qw * y + qz * x - qx * z,
+        iz = qw * z + qx * y - qy * x,
+        iw = -qx * x - qy * y - qz * z
+
+    // calculate result * inverse quat
+    out[0] = ix * qw + iw * -qx + iy * -qz - iz * -qy
+    out[1] = iy * qw + iw * -qy + iz * -qx - ix * -qz
+    out[2] = iz * qw + iw * -qz + ix * -qy - iy * -qx
+    return out
+}
+},{}],37:[function(require,module,exports){
+'use strict'
+
+module.exports = mouseListen
+
+var mouse = require('mouse-event')
+
+function mouseListen (element, callback) {
+  if (!callback) {
+    callback = element
+    element = window
+  }
+
+  var buttonState = 0
+  var x = 0
+  var y = 0
+  var mods = {
+    shift: false,
+    alt: false,
+    control: false,
+    meta: false
+  }
+  var attached = false
+
+  function updateMods (ev) {
+    var changed = false
+    if ('altKey' in ev) {
+      changed = changed || ev.altKey !== mods.alt
+      mods.alt = !!ev.altKey
+    }
+    if ('shiftKey' in ev) {
+      changed = changed || ev.shiftKey !== mods.shift
+      mods.shift = !!ev.shiftKey
+    }
+    if ('ctrlKey' in ev) {
+      changed = changed || ev.ctrlKey !== mods.control
+      mods.control = !!ev.ctrlKey
+    }
+    if ('metaKey' in ev) {
+      changed = changed || ev.metaKey !== mods.meta
+      mods.meta = !!ev.metaKey
+    }
+    return changed
+  }
+
+  function handleEvent (nextButtons, ev) {
+    var nextX = mouse.x(ev)
+    var nextY = mouse.y(ev)
+    if ('buttons' in ev) {
+      nextButtons = ev.buttons | 0
+    }
+    if (nextButtons !== buttonState ||
+      nextX !== x ||
+      nextY !== y ||
+      updateMods(ev)) {
+      buttonState = nextButtons | 0
+      x = nextX || 0
+      y = nextY || 0
+      callback && callback(buttonState, x, y, mods)
+    }
+  }
+
+  function clearState (ev) {
+    handleEvent(0, ev)
+  }
+
+  function handleBlur () {
+    if (buttonState ||
+      x ||
+      y ||
+      mods.shift ||
+      mods.alt ||
+      mods.meta ||
+      mods.control) {
+      x = y = 0
+      buttonState = 0
+      mods.shift = mods.alt = mods.control = mods.meta = false
+      callback && callback(0, 0, 0, mods)
+    }
+  }
+
+  function handleMods (ev) {
+    if (updateMods(ev)) {
+      callback && callback(buttonState, x, y, mods)
+    }
+  }
+
+  function handleMouseMove (ev) {
+    if (mouse.buttons(ev) === 0) {
+      handleEvent(0, ev)
+    } else {
+      handleEvent(buttonState, ev)
+    }
+  }
+
+  function handleMouseDown (ev) {
+    handleEvent(buttonState | mouse.buttons(ev), ev)
+  }
+
+  function handleMouseUp (ev) {
+    handleEvent(buttonState & ~mouse.buttons(ev), ev)
+  }
+
+  function attachListeners () {
+    if (attached) {
+      return
+    }
+    attached = true
+
+    element.addEventListener('mousemove', handleMouseMove)
+
+    element.addEventListener('mousedown', handleMouseDown)
+
+    element.addEventListener('mouseup', handleMouseUp)
+
+    element.addEventListener('mouseleave', clearState)
+    element.addEventListener('mouseenter', clearState)
+    element.addEventListener('mouseout', clearState)
+    element.addEventListener('mouseover', clearState)
+
+    element.addEventListener('blur', handleBlur)
+
+    element.addEventListener('keyup', handleMods)
+    element.addEventListener('keydown', handleMods)
+    element.addEventListener('keypress', handleMods)
+
+    if (element !== window) {
+      window.addEventListener('blur', handleBlur)
+
+      window.addEventListener('keyup', handleMods)
+      window.addEventListener('keydown', handleMods)
+      window.addEventListener('keypress', handleMods)
+    }
+  }
+
+  function detachListeners () {
+    if (!attached) {
+      return
+    }
+    attached = false
+
+    element.removeEventListener('mousemove', handleMouseMove)
+
+    element.removeEventListener('mousedown', handleMouseDown)
+
+    element.removeEventListener('mouseup', handleMouseUp)
+
+    element.removeEventListener('mouseleave', clearState)
+    element.removeEventListener('mouseenter', clearState)
+    element.removeEventListener('mouseout', clearState)
+    element.removeEventListener('mouseover', clearState)
+
+    element.removeEventListener('blur', handleBlur)
+
+    element.removeEventListener('keyup', handleMods)
+    element.removeEventListener('keydown', handleMods)
+    element.removeEventListener('keypress', handleMods)
+
+    if (element !== window) {
+      window.removeEventListener('blur', handleBlur)
+
+      window.removeEventListener('keyup', handleMods)
+      window.removeEventListener('keydown', handleMods)
+      window.removeEventListener('keypress', handleMods)
+    }
+  }
+
+  // Attach listeners
+  attachListeners()
+
+  var result = {
+    element: element
+  }
+
+  Object.defineProperties(result, {
+    enabled: {
+      get: function () { return attached },
+      set: function (f) {
+        if (f) {
+          attachListeners()
+        } else {
+          detachListeners()
+        }
+      },
+      enumerable: true
+    },
+    buttons: {
+      get: function () { return buttonState },
+      enumerable: true
+    },
+    x: {
+      get: function () { return x },
+      enumerable: true
+    },
+    y: {
+      get: function () { return y },
+      enumerable: true
+    },
+    mods: {
+      get: function () { return mods },
+      enumerable: true
+    }
+  })
+
+  return result
+}
+
+},{"mouse-event":38}],38:[function(require,module,exports){
+'use strict'
+
+function mouseButtons(ev) {
+  if(typeof ev === 'object') {
+    if('buttons' in ev) {
+      return ev.buttons
+    } else if('which' in ev) {
+      var b = ev.which
+      if(b === 2) {
+        return 4
+      } else if(b === 3) {
+        return 2
+      } else if(b > 0) {
+        return 1<<(b-1)
+      }
+    } else if('button' in ev) {
+      var b = ev.button
+      if(b === 1) {
+        return 4
+      } else if(b === 2) {
+        return 2
+      } else if(b >= 0) {
+        return 1<<b
+      }
+    }
+  }
+  return 0
+}
+exports.buttons = mouseButtons
+
+function mouseElement(ev) {
+  return ev.target || ev.srcElement || window
+}
+exports.element = mouseElement
+
+function mouseRelativeX(ev) {
+  if(typeof ev === 'object') {
+    if('offsetX' in ev) {
+      return ev.offsetX
+    }
+    var target = mouseElement(ev)
+    var bounds = target.getBoundingClientRect()
+    return ev.clientX - bounds.left
+  }
+  return 0
+}
+exports.x = mouseRelativeX
+
+function mouseRelativeY(ev) {
+  if(typeof ev === 'object') {
+    if('offsetY' in ev) {
+      return ev.offsetY
+    }
+    var target = mouseElement(ev)
+    var bounds = target.getBoundingClientRect()
+    return ev.clientY - bounds.top
+  }
+  return 0
+}
+exports.y = mouseRelativeY
+
+},{}],39:[function(require,module,exports){
+'use strict'
+
+var toPX = require('to-px')
+
+module.exports = mouseWheelListen
+
+function mouseWheelListen(element, callback, noScroll) {
+  if(typeof element === 'function') {
+    noScroll = !!callback
+    callback = element
+    element = window
+  }
+  var lineHeight = toPX('ex', element)
+  var listener = function(ev) {
+    if(noScroll) {
+      ev.preventDefault()
+    }
+    var dx = ev.deltaX || 0
+    var dy = ev.deltaY || 0
+    var dz = ev.deltaZ || 0
+    var mode = ev.deltaMode
+    var scale = 1
+    switch(mode) {
+      case 1:
+        scale = lineHeight
+      break
+      case 2:
+        scale = window.innerHeight
+      break
+    }
+    dx *= scale
+    dy *= scale
+    dz *= scale
+    if(dx || dy || dz) {
+      return callback(dx, dy, dz, ev)
+    }
+  }
+  element.addEventListener('wheel', listener)
+  return listener
+}
+
+},{"to-px":43}],40:[function(require,module,exports){
+module.exports = function parseUnit(str, out) {
+    if (!out)
+        out = [ 0, '' ]
+
+    str = String(str)
+    var num = parseFloat(str, 10)
+    out[0] = num
+    out[1] = str.match(/[\d.\-\+]*\s*(.*)/)[1] || ''
+    return out
+}
+},{}],41:[function(require,module,exports){
+var mouseChange = require('mouse-change')
+var mouseWheel = require('mouse-wheel')
+var identity = require('gl-mat4/identity')
+var perspective = require('gl-mat4/perspective')
+var lookAt = require('gl-mat4/lookAt')
+
+module.exports = createCamera
+
+var isBrowser = typeof window !== 'undefined'
+
+function createCamera (regl, props_) {
+  var props = props_ || {}
+
+  // Preserve backward-compatibilty while renaming preventDefault -> noScroll
+  if (typeof props.noScroll === 'undefined') {
+    props.noScroll = props.preventDefault;
+  }
+
+  var cameraState = {
+    view: identity(new Float32Array(16)),
+    projection: identity(new Float32Array(16)),
+    center: new Float32Array(props.center || 3),
+    theta: props.theta || 0,
+    phi: props.phi || 0,
+    distance: Math.log(props.distance || 10.0),
+    eye: new Float32Array(3),
+    up: new Float32Array(props.up || [0, 1, 0]),
+    fovy: props.fovy || Math.PI / 4.0,
+    near: typeof props.near !== 'undefined' ? props.near : 0.01,
+    far: typeof props.far !== 'undefined' ? props.far : 1000.0,
+    noScroll: typeof props.noScroll !== 'undefined' ? props.noScroll : false,
+    flipY: !!props.flipY,
+    dtheta: 0,
+    dphi: 0,
+    rotationSpeed: typeof props.rotationSpeed !== 'undefined' ? props.rotationSpeed : 1,
+    zoomSpeed: typeof props.zoomSpeed !== 'undefined' ? props.zoomSpeed : 1,
+    renderOnDirty: typeof props.renderOnDirty !== undefined ? !!props.renderOnDirty : false
+  }
+
+  var element = props.element
+  var damping = typeof props.damping !== 'undefined' ? props.damping : 0.9
+
+  var right = new Float32Array([1, 0, 0])
+  var front = new Float32Array([0, 0, 1])
+
+  var minDistance = Math.log('minDistance' in props ? props.minDistance : 0.1)
+  var maxDistance = Math.log('maxDistance' in props ? props.maxDistance : 1000)
+
+  var ddistance = 0
+
+  var prevX = 0
+  var prevY = 0
+
+  if (isBrowser && props.mouse !== false) {
+    var source = element || regl._gl.canvas
+
+    function getWidth () {
+      return element ? element.offsetWidth : window.innerWidth
+    }
+
+    function getHeight () {
+      return element ? element.offsetHeight : window.innerHeight
+    }
+
+    mouseChange(source, function (buttons, x, y) {
+      if (buttons & 1) {
+        var dx = (x - prevX) / getWidth()
+        var dy = (y - prevY) / getHeight()
+
+        cameraState.dtheta += cameraState.rotationSpeed * 4.0 * dx
+        cameraState.dphi += cameraState.rotationSpeed * 4.0 * dy
+        cameraState.dirty = true;
+      }
+      prevX = x
+      prevY = y
+    })
+
+    mouseWheel(source, function (dx, dy) {
+      ddistance += dy / getHeight() * cameraState.zoomSpeed
+      cameraState.dirty = true;
+    }, props.noScroll)
+  }
+
+  function damp (x) {
+    var xd = x * damping
+    if (Math.abs(xd) < 0.1) {
+      return 0
+    }
+    cameraState.dirty = true;
+    return xd
+  }
+
+  function clamp (x, lo, hi) {
+    return Math.min(Math.max(x, lo), hi)
+  }
+
+  function updateCamera (props) {
+    Object.keys(props).forEach(function (prop) {
+      cameraState[prop] = props[prop]
+    })
+
+    var center = cameraState.center
+    var eye = cameraState.eye
+    var up = cameraState.up
+    var dtheta = cameraState.dtheta
+    var dphi = cameraState.dphi
+
+    cameraState.theta += dtheta
+    cameraState.phi = clamp(
+      cameraState.phi + dphi,
+      -Math.PI / 2.0,
+      Math.PI / 2.0)
+    cameraState.distance = clamp(
+      cameraState.distance + ddistance,
+      minDistance,
+      maxDistance)
+
+    cameraState.dtheta = damp(dtheta)
+    cameraState.dphi = damp(dphi)
+    ddistance = damp(ddistance)
+
+    var theta = cameraState.theta
+    var phi = cameraState.phi
+    var r = Math.exp(cameraState.distance)
+
+    var vf = r * Math.sin(theta) * Math.cos(phi)
+    var vr = r * Math.cos(theta) * Math.cos(phi)
+    var vu = r * Math.sin(phi)
+
+    for (var i = 0; i < 3; ++i) {
+      eye[i] = center[i] + vf * front[i] + vr * right[i] + vu * up[i]
+    }
+
+    lookAt(cameraState.view, eye, center, up)
+  }
+
+  cameraState.dirty = true;
+
+  var injectContext = regl({
+    context: Object.assign({}, cameraState, {
+      dirty: function () {
+        return cameraState.dirty;
+      },
+      projection: function (context) {
+        perspective(cameraState.projection,
+          cameraState.fovy,
+          context.viewportWidth / context.viewportHeight,
+          cameraState.near,
+          cameraState.far)
+        if (cameraState.flipY) { cameraState.projection[5] *= -1 }
+        return cameraState.projection
+      }
+    }),
+    uniforms: Object.keys(cameraState).reduce(function (uniforms, name) {
+      uniforms[name] = regl.context(name)
+      return uniforms
+    }, {})
+  })
+
+  function setupCamera (props, block) {
+    if (typeof setupCamera.dirty !== 'undefined') {
+      cameraState.dirty = setupCamera.dirty || cameraState.dirty
+      setupCamera.dirty = undefined;
+    }
+
+    if (props && block) {
+      cameraState.dirty = true;
+    }
+
+    if (cameraState.renderOnDirty && !cameraState.dirty) return;
+
+    if (!block) {
+      block = props
+      props = {}
+    }
+
+    updateCamera(props)
+    injectContext(block)
+    cameraState.dirty = false;
+  }
+
+  Object.keys(cameraState).forEach(function (name) {
+    setupCamera[name] = cameraState[name]
+  })
+
+  return setupCamera
+}
+
+},{"gl-mat4/identity":1,"gl-mat4/lookAt":2,"gl-mat4/perspective":3,"mouse-change":37,"mouse-wheel":39}],42:[function(require,module,exports){
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define(factory) :
@@ -9511,45 +10856,144 @@ return wrapREGL;
 })));
 
 
-},{}],2:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
+'use strict'
+
+var parseUnit = require('parse-unit')
+
+module.exports = toPX
+
+var PIXELS_PER_INCH = 96
+
+function getPropertyInPX(element, prop) {
+  var parts = parseUnit(getComputedStyle(element).getPropertyValue(prop))
+  return parts[0] * toPX(parts[1], element)
+}
+
+//This brutal hack is needed
+function getSizeBrutal(unit, element) {
+  var testDIV = document.createElement('div')
+  testDIV.style['font-size'] = '128' + unit
+  element.appendChild(testDIV)
+  var size = getPropertyInPX(testDIV, 'font-size') / 128
+  element.removeChild(testDIV)
+  return size
+}
+
+function toPX(str, element) {
+  element = element || document.body
+  str = (str || 'px').trim().toLowerCase()
+  if(element === window || element === document) {
+    element = document.body 
+  }
+  switch(str) {
+    case '%':  //Ambiguous, not sure if we should use width or height
+      return element.clientHeight / 100.0
+    case 'ch':
+    case 'ex':
+      return getSizeBrutal(str, element)
+    case 'em':
+      return getPropertyInPX(element, 'font-size')
+    case 'rem':
+      return getPropertyInPX(document.body, 'font-size')
+    case 'vw':
+      return window.innerWidth/100
+    case 'vh':
+      return window.innerHeight/100
+    case 'vmin':
+      return Math.min(window.innerWidth, window.innerHeight) / 100
+    case 'vmax':
+      return Math.max(window.innerWidth, window.innerHeight) / 100
+    case 'in':
+      return PIXELS_PER_INCH
+    case 'cm':
+      return PIXELS_PER_INCH / 2.54
+    case 'mm':
+      return PIXELS_PER_INCH / 25.4
+    case 'pt':
+      return PIXELS_PER_INCH / 72
+    case 'pc':
+      return PIXELS_PER_INCH / 6
+  }
+  return 1
+}
+},{"parse-unit":40}],44:[function(require,module,exports){
 "use strict"
 
 const Regl = require("regl")
-const { RenderDistanceConstraints, RenderPoints } = require("./rendering")
+const Camera = require("regl-camera")
+const V3 = require("gl-vec3")
+const {   
+  Render,
+  updateDistanceConstraintLines
+} = require("./rendering")
+const { 
+  applyExternalForces, 
+  estimatePositions, 
+  updateVelocities, 
+  updateCollisions,
+  projectConstraints 
+} = require("./solving")
 
 const regl = Regl()
-const renderDistanceConstraints = RenderDistanceConstraints(regl)
-const renderPoints = RenderPoints(regl)
-const rr = (min, max) => Math.random() * (max - min) + min
-const rrint = (min, max) => Math.floor(rr(min, max))
-const ITERATION_COUNT = 16
-const PARTICLE_COUNT = 4000
-const DISTANCE_CONSTRAINT_COUNT = PARTICLE_COUNT
-const G = -1
-const SPREAD = .5
+const camera = Camera(regl, {
+  distance: 4,
+  theta: 3 * Math.PI / 4
+})
+const render = Render(regl)
+const ITERATION_COUNT = 10
+const PARTICLE_COUNT = 4
+const DAMPING_FACTOR = .98
+const G = -10
 const invmasses = new Float32Array(PARTICLE_COUNT)
 const velocities = new Float32Array(PARTICLE_COUNT * 3)
-const positions = new Float32Array(PARTICLE_COUNT * 3)
-const estimates = new Float32Array(PARTICLE_COUNT * 3)
-const distanceConstraintLines = new Float32Array(DISTANCE_CONSTRAINT_COUNT * 2 * 3)
+const positions = [
+  new Float32Array(PARTICLE_COUNT * 3),
+  new Float32Array(PARTICLE_COUNT * 3)
+]
+const distanceConstraintLines = new Float32Array(PARTICLE_COUNT * 2 * 3)
 const distanceConstraints = []
+const collisionConstraints = []
+const impacts = []
 
-for (var i = 0, o, t; i < PARTICLE_COUNT; i++) {
-  o = i * 3
-  invmasses[i + 0] = i / PARTICLE_COUNT
-  t = i * Math.PI * 2 / PARTICLE_COUNT
-  positions[o + 0] = Math.sin(t) * SPREAD
-  positions[o + 1] = Math.cos(t) * SPREAD
-  positions[o + 2] = 0
-}
+const SPREAD = .2
+const p1 = [ 0, SPREAD, 0 ]
+const p2 = [ -SPREAD, SPREAD, 0 ]
+const p3 = [ -2 * SPREAD, SPREAD, 0 ]
+const p4 = [ -3 * SPREAD, SPREAD, 0 ]
+const S = 1
+const t1 = [ 0, S, 0 ]
+const t2 = [ 0, -S, -S ]
+const t3 = [ 0, -S, S ]
+const tri = [ t1, t2, t3 ]
+const tris = [ tri ]
+const normals = []
 
-for (var i = 0; i < PARTICLE_COUNT; i++) {
-  distanceConstraints.push({ 
-    i1: rrint(0, PARTICLE_COUNT), 
-    i2: rrint(0, PARTICLE_COUNT), 
-    d: rr(.1, .8), 
-    k: rr(.1, .9)
-  })
+positions[0].set(p1, 0)
+positions[0].set(p2, 3)
+positions[0].set(p3, 6)
+positions[0].set(p4, 9)
+
+invmasses[0] = 0
+invmasses[1] = 1
+invmasses[2] = 1
+invmasses[3] = 1
+
+distanceConstraints.push({ i1: 0, i2: 1, d: SPREAD, k: .1 })
+distanceConstraints.push({ i1: 1, i2: 2, d: SPREAD, k: .1 })
+distanceConstraints.push({ i1: 2, i2: 3, d: SPREAD, k: .1 })
+
+// calculate normals
+var e1 = [ 0, 0, 0 ]
+var e2 = [ 0, 0, 0 ]
+var n = [ 0, 0, 0 ]
+
+for (const t of tris) {
+  V3.subtract(e1, t[0], t[1])
+  V3.subtract(e2, t[0], t[2])
+  V3.cross(n, e1, e2)
+  V3.normalize(n, n)
+  normals.push(n[0], n[1], n[2])
 }
 
 const invmassbuffer = regl.buffer({ 
@@ -9565,249 +11009,431 @@ const distanceConstraintBuffer = regl.buffer({
   usage: "dynamic"
 })
 
-function applyExternalForces(dT, ws, ps, vs) {
-  for (var i = 0; i < PARTICLE_COUNT; i++) {
-    if (ws[i] == 0)
-      continue
-    vs[i * 3 + 1] += dT * G // GRAVITY
-  }
-}
-
-function estimatePositions(dT, estimates, ps, vs) {
-  var i = 0
-  var l = estimates.length
-
-  while (i < l) {
-    estimates[i] = ps[i] + dT * vs[i++]
-    estimates[i] = ps[i] + dT * vs[i++]
-    estimates[i] = ps[i] + dT * vs[i++]
-  }
-}
-
-function updateVelocities(dT, estimates, ps, vs) {
-  if (dT == 0) 
-    return
-
-  var invdT = 1 / dT
-  var i = 0
-  var l = vs.length
-
-  while (i < l) {
-    vs[i] = (estimates[i] - ps[i++]) * invdT
-    vs[i] = (estimates[i] - ps[i++]) * invdT
-    vs[i] = (estimates[i] - ps[i++]) * invdT
-  }
-}
-
-function updatePositions(estimates, positions) {
-  positions.set(estimates) 
-}
-
-function projectConstraints(iterations, estimates, ws, pcs) {
-  var inviterations = 1 / iterations
-  var l = pcs.length
-  var i = 0
-  var c, d
-  var i1, i2
-  var x1, y1, z1
-  var x2, y2, z2
-  var dx, dy, dz
-  var dp1, dp2
-  var dist, distdiff, dirx, diry, dirz
-  var w1, w2, wsum
-  var k
-  var dp1x, dp1y, dp1z
-  var dp2x, dp2y, dp2z
-  var w1, w2
-
-  while (iterations-- > 0) {
-    while (i < l) {
-      c = pcs[i++]
-      d = c.d
-      k = 1 - Math.pow(1 - c.k, inviterations) // TODO: seems like this could be stored once
-      w1 = ws[c.i1]
-      w2 = ws[c.i2]
-      i1 = c.i1 * 3
-      i2 = c.i2 * 3
-      x1 = estimates[i1++]
-      y1 = estimates[i1++]
-      z1 = estimates[i1]
-      x2 = estimates[i2++]
-      y2 = estimates[i2++]
-      z2 = estimates[i2]
-      dx = x1 - x2
-      dy = y1 - y2
-      dz = z1 - z2
-      dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
-      distdiff = dist - d
-      // this is all specifically for distance constraints and inequality. perhaps generalize?
-      if (distdiff < 0) continue
-      dirx = dx / dist
-      diry = dy / dist
-      dirz = dz / dist
-      wsum = w1 + w2
-      //TODO: some redundant calculation here... could be refactored
-      dp1x = k * -w1 * distdiff * dirx / wsum
-      dp1y = k * -w1 * distdiff * diry / wsum
-      dp1z = k * -w1 * distdiff * dirz / wsum
-      dp2x = k * w2 * distdiff * dirx / wsum
-      dp2y = k * w2 * distdiff * diry / wsum
-      dp2z = k * w2 * distdiff * dirz / wsum
-      estimates[i1--] = dp1z + z1
-      estimates[i1--] = dp1y + y1
-      estimates[i1]   = dp1x + x1
-      estimates[i2--] = dp2z + z2
-      estimates[i2--] = dp2y + y2
-      estimates[i2]   = dp2x + x2
-    }
-  }
-}
-
-function updateDistanceConstraintLines(ps, cs, cls) {
-  var l = cs.length
-  var i = 0
-  var o = 0
-  var c
-  var i1, i2
-
-  while (i < l) {
-    c = cs[i++]
-    i1 = c.i1 * 3
-    i2 = c.i2 * 3
-    cls[o++] = ps[i1++]
-    cls[o++] = ps[i1++]
-    cls[o++] = ps[i1++]
-    cls[o++] = ps[i2++]
-    cls[o++] = ps[i2++]
-    cls[o++] = ps[i2++]
-  }
-  return l * 2
-}
-
-var then = performance.now()
-var now = performance.now()
-var dT = 0
-var count = 0
-var particleProps = {
+const DT = 1 / 60
+const MAX_TIME = .1
+const INIT_TIME = 200
+const particleProps = {
   positions: positionbuffer,
-  inverseMasses: invmassbuffer,
   count: PARTICLE_COUNT,
-  size: 80
+  size: 10,
+  color: [ 0, .2, .5, 1 ],
+  primitive: "points"
 }
-var distanceConstraintProps = {
+const distanceConstraintProps = {
+  positions: distanceConstraintBuffer,
   count: 0,
-  positions: distanceConstraintBuffer
+  color: [ .2, .4, .1, 1 ],
+  primitive: "lines"
 }
+const impactProps = {
+  positions: impacts,
+  count: 0,
+  size: 20,
+  color: [ .1, .8, .8, 1],
+  primitive: "points"
+}
+const meshProps = {
+  positions: tris[0],
+  count: 3,
+  color: [ .7, .7, .1, 1 ],
+  primitive: "triangles"
+}
+
+var currentTime = performance.now() * .001
+var t = 0
+var acc = 0
+var i = 1
+var ii = 0
+var tmp = i
+var count = 0
 
 setTimeout(function () {
-  regl.frame(function () {
-    // update timestep
-    then = now
-    now = performance.now()
-    dT = (now - then) * .001
+  regl.frame(function ({ time, tick }) {
+    var newTime = performance.now() * .001
+    var frameTime = Math.min(newTime - currentTime, MAX_TIME)
 
-    // apply external forces aka gravity
-    // applyExternalForces(dT, invmasses, positions, velocities)
+    currentTime = newTime
 
-    // estimate positions from current velocities
-    estimatePositions(dT, estimates, positions, velocities)
+    if (!window.paused) {
+      acc += frameTime
+      while (acc >= DT) {
+        tmp = i
+        i = ii
+        ii = tmp
+        applyExternalForces(DT, DAMPING_FACTOR, G, invmasses, velocities)
+        estimatePositions(DT, positions[ii], positions[i], velocities)
+        collisionConstraints.splice(0)
+        updateCollisions(
+          tick, 
+          collisionConstraints, 
+          tris, 
+          normals, 
+          positions[ii], 
+          positions[i])
+        projectConstraints(
+          ITERATION_COUNT, 
+          positions[ii], 
+          invmasses, 
+          collisionConstraints, 
+          distanceConstraints)
+        updateVelocities(DT, positions[ii], positions[i], velocities)
+        t += DT
+        acc -= DT
+      }
+    }
 
-    // iteratively project all constraints
-    projectConstraints(ITERATION_COUNT, estimates, invmasses, distanceConstraints)
+    for (const cc of collisionConstraints) {
+      impacts.push(cc.qc)
+    }
+    impactProps.count = impacts.length
+    impactProps.positions = impacts
 
-    // update velocity and position based on estimates/positions
-    updateVelocities(dT, estimates, positions, velocities)
-    updatePositions(estimates, positions)
-
-    // update buffer containing lines for rendering constraints
-    count = updateDistanceConstraintLines(positions, distanceConstraints, distanceConstraintLines)
-
-    // update contents of buffers
+    count = updateDistanceConstraintLines(positions[ii], distanceConstraints, distanceConstraintLines)
     distanceConstraintBuffer.subdata(distanceConstraintLines)
-    positionbuffer.subdata(positions)
-
-    // update properties for rendering
     distanceConstraintProps.count = count
 
-    // render points and constraints
-    renderPoints(particleProps)
-    renderDistanceConstraints(distanceConstraintProps)
+    positionbuffer.subdata(positions[ii])
+
+
+    camera(function (c) {
+      render(particleProps)
+      render(meshProps)
+      render(distanceConstraintProps)
+      render(impactProps)
+    })
   })
-}, 100)
+}, INIT_TIME)
 
+window.paused = false
 window.positions = positions
+window.collisionConstraints = collisionConstraints
 
-},{"./rendering":3,"regl":1}],3:[function(require,module,exports){
-module.exports.RenderDistanceConstraints = RenderDistanceConstraints
-module.exports.RenderPoints = RenderPoints
+},{"./rendering":46,"./solving":47,"gl-vec3":15,"regl":42,"regl-camera":41}],45:[function(require,module,exports){
+var { cross, dot, subtract, scaleAndAdd } = require("gl-vec3")
 
-function RenderDistanceConstraints(regl) {
+module.exports.rayTriangleIntersection = rayTriangleIntersection
+
+var EPS = Number.EPSILON
+var d = new Float32Array(3 * 6)
+var e1 = d.subarray(0, 3)
+var e2 = d.subarray(3, 6)
+var h = d.subarray(6, 9)
+var s = d.subarray(9, 12)
+var q = d.subarray(12, 15)
+
+function rayTriangleIntersection(o, p, dir, tri) {
+  var a, f, u, dist
+
+  p1 = tri[0]
+  p2 = tri[1]
+  p3 = tri[2]
+
+  subtract(e1, p2, p1)
+  subtract(e2, p3, p1)
+
+  cross(h, dir, e2)
+  a = dot(e1, h)
+
+  if (a > -EPS && a < EPS)
+    return false
+
+  f = 1 / a
+  subtract(s, p, p1)
+  u = f * dot(s, h)
+
+  if (u < 0 || u > 1)
+    return false
+
+  cross(q, s, e1)
+  v = f * dot(dir, q)
+
+  if (v < 0 || u + v > 1)
+    return false
+
+  dist = f * dot(e2, q)
+
+  if (dist <= EPS)
+    return false
+  
+  scaleAndAdd(o, p, dir, dist)
+  return true
+}
+
+},{"gl-vec3":15}],46:[function(require,module,exports){
+module.exports = render
+
+function render (regl) {
   return regl({
     vert: `
       precision mediump float;
 
       attribute vec3 position;
 
+      uniform mat4 view; 
+      uniform mat4 projection;
+
+      uniform float size;
+      uniform vec4 color;
+
       void main () {
-        gl_Position = vec4(position, 1);
+        gl_PointSize = size;
+        gl_Position = projection * view * vec4(position, 1);
       }
     `,
     frag: `
       precision mediump float;
 
-      const vec4 color = vec4(.1, .2, .5, 1);
+      uniform vec4 color;
 
       void main () {
         gl_FragColor = color; 
       }      
     `,
+    cull: { 
+      enable: true 
+    },
+    uniforms: {
+      size: (c, p) => p.size || 10,
+      color: regl.prop("color")
+    },
     attributes: {
       position: regl.prop("positions") 
     },
     count: regl.prop("count"),
-    primitive: "lines"
+    primitive: regl.prop("primitive")
   })
 }
 
-function RenderPoints(regl) {
-  return regl({
-    vert: `
-      precision mediump float; 
+},{}],47:[function(require,module,exports){
+const { length, squaredDistance, normalize, scale, scaleAndAdd, add, subtract, copy, dot } = require("gl-vec3")
+const { rayTriangleIntersection } = require("./intersection")
+const { pow } = Math
 
-      attribute vec3 position;
-      attribute float inverse_mass;
+module.exports = solve
 
-      uniform float size;
-
-      varying vec4 color;
-
-      void main () {
-        color = vec4(inverse_mass, .2, .5, 1);
-        gl_PointSize = size * abs(position.y * position.x);
-        gl_Position = vec4(position, 1);
-      }
-    `,
-    frag: `
-      precision mediump float;
-
-      varying vec4 color;
-
-      void main () {
-        gl_FragColor = color;
-      }
-    `,
-    uniforms: {
-      size: regl.prop("size") 
-    },
-    attributes: {
-      inverse_mass: regl.prop("inverseMasses"),
-      position: regl.prop("positions")
-    },
-    count: regl.prop("count"),
-    primitive: "points"
-  })
+function applyExternalForces(dt, gravity, points) {
+  for (const { velocity } of points) {
+    // v = v + g * dt
+    scaleAndAdd(velocity, velocity, gravity, dt)
+  }
 }
 
-},{}]},{},[2]);
+function dampVelocity(damping, points) {
+  for (const { velocity } of points) {
+    // v = damping * v
+    scale(velocity, velocity, damping) 
+  }
+}
+
+function estimatePositions(dt, points) {
+  for (const { predicted, position, velocity } of points) {
+    // p = x + dt * v
+    scaleAndAdd(predicted, position, velocity, dt)
+  }
+}
+
+function updateVelocities(dt, points) {
+  if (dt == 0) 
+    return
+
+  const invdt = 1 / dt
+
+  for (const { predicted, position, velocity } of points) {
+    // v = (p - x) / dt
+    subtract(velocity, predicted, position)
+    scale(velocity, velocity, invdt)
+  }
+}
+
+function updatePositions(points) {
+  for (const { predicted, position } of points) {
+    // x = p
+    copy(position, predicted) 
+  }
+}
+
+function adjustVelocities(constraints, points) {
+  const vt = [ 0, 0, 0 ]
+  const vn = [ 0, 0, 0 ]
+
+  for (const { i, normal } of constraints.collisions) {
+    const { velocity } = points[i]
+    const mvn = dot(velocity, normal)
+
+    scale(vn, normal, mvn)
+    subtract(vt, velocity, vn)
+    scaleAndAdd(velocity, vt, vn, -1)
+  }
+}
+
+function generateCollisionConstraints(constraints, meshes, points) {
+  const direction = [ 0, 0, 0 ]
+  const hitPoint = [ 0, 0, 0 ]
+
+  for (var i = 0; i < points.length; i++) { 
+    const { position, predicted } = points[i]
+
+    subtract(direction, predicted, position)
+    for (const { triangles, normals } of meshes) {
+      for (var j = 0; j < triangles.length / 3; j++) {
+        const triangle = triangles.slice(j * 3, 3)
+        const normal = normals[j]
+
+        // normal is same direction as motion
+        if (dot(normal, direction) > 0)
+          continue
+
+        // didn't intersect triangle
+        if (!rayTriangleIntersection(hitPoint, position, direction, triangle))
+          continue
+
+        const toSurface = squaredDistance(hitPoint, position)
+        const toPredicted = squaredDistance(predicted, position)
+
+        // too far away
+        if (toSurface > toPredicted)
+          continue
+
+        constraints.collisions.push({ 
+          normal: [ ...normal ], 
+          surfacePoint: [ ...hitPoint ],
+          i: i
+        })
+      }
+    } 
+  }
+}
+
+// will detect collisions with minx, miny, minz. only for testing
+function generateTestCollisionConstraints(xmin, ymin, zmin, meshes, points) {
+  const direction = [ 0, 0, 0 ]
+  const hitPoint = [ 0, 0, 0 ]
+
+  for (var i = 0; i < points.length; i++) {
+    const { predicted } = points[i]
+    const xpenetration = xmin - predicted[0]
+    const ypenetration = ymin - predicted[1]
+    const zpenetration = zmin - predicted[2]
+
+    if (xpenetration > 0) {
+      constraints.collisions.push({
+        normal: [ 1, 0, 0 ],
+        surfacePoint: [ predicted[0] + xpenetration, predicted[1], predicted[2] ],
+        i: i
+      })  
+    }
+    if (ypenetration > 0) {
+      constraints.collisions.push({
+        normal: [ 0, 1, 0 ],
+        surfacePoint: [ predicted[0], predicted[1] + ypenetration, predicted[2] ],
+        i: i
+      })  
+    }
+    if (zpenetration > 0) {
+      constraints.collisions.push({
+        normal: [ 0, 0, 1 ],
+        surfacePoint: [ predicted[0], predicted[1], predicted[2] + zpenetration ],
+        i: i
+      })  
+    }
+  }
+}
+
+function projectConstraints(iterations, constraints, points) {
+  const { distances, collisions, positions } = constraints
+  const inverseIterations = 1 / iterations
+  // for distances
+  const dp = [ 0, 0, 0 ]
+  const dir = [ 0, 0, 0 ]
+  // for collisions
+  const fromSurface = [ 0, 0, 0 ]
+
+
+  while (iterations--) {
+    for (let i = 0; i < distances.length; i++) {
+      let { i1, i2, restLength, stiffness } = distances[i]
+      let p1 = points[i1]
+      let p2 = points[i2]
+      let dstiffness = 1 - pow(1 - stiffness, inverseIterations)
+      let dist
+      let c
+      let inverseMassSum
+      let f
+      let f1
+      let f2
+
+      subtract(dp, p1.predicted, p2.predicted)
+
+      // |p1 - p2| - d
+      dist = length(dp)
+      c = dist - restLength
+
+      // if we are already satisfied do nothing
+      if (c > -Number.EPSILON && c < Number.EPSILON)
+        continue
+
+      // normalize to get unit vector for direction
+      scale(dir, dp, 1 / dist)
+
+      inverseMassSum = p1.inverseMass + p2.inverseMass
+      f = dstiffness * c / inverseMassSum
+      f1 = -p1.inverseMass * f
+      f2 = p2.inverseMass * f
+
+      // dp1 = k * -w1 / (w1 + w2) * (|p1 - p2| - d) * dir
+      scaleAndAdd(p1.predicted, p1.predicted, dir, f1)
+      // dp2 = k * w2 / (w1 + w2) * (|p1 - p2| - d) * dir
+      scaleAndAdd(p2.predicted, p2.predicted, dir, f2)
+    }
+
+    for (let j = 0; j < collisions.length; j++) {
+      let { i, normal, surfacePoint } = collisions[j]
+      let p = points[i]
+      let c
+      let dc
+      
+      // k = 1
+      // s = C(p) / w
+      // dp = -s * w * dC(p)
+      // dp = k * -w / w * dot(p - qc, n) * n
+      //    = -k * dot(pqc, n) * n
+      //    = -dot(pqc, n) * n
+      subtract(fromSurface, p.predicted, surfacePoint)
+      c = dot(fromSurface, normal)
+
+      if (c >= 0)
+        continue
+
+      dc = normal
+      scaleAndAdd(p.predicted, p.predicted, dc, -c)
+    }
+
+    // simple solution but only valid for stiffness of 1
+    for (let k = 0; k < positions.length; k++) {
+      let { i, position } = positions[k]
+      let p = points[i]        
+
+      copy(p.predicted, position)
+    }
+  }
+}
+
+function solve(dt, iterationCount, damping, gravity, constraints, meshes, points) {
+  constraints.positions[1].position[0] = Math.abs(Math.sin(performance.now() / 452) * 2)
+  constraints.positions[1].position[1] = Math.sin(performance.now() / 1000) * 2
+  constraints.positions[1].position[2] = Math.cos(performance.now() / 1000) * 2
+  applyExternalForces(dt, gravity, points)
+  dampVelocity(damping, points)
+  estimatePositions(dt, points)
+  constraints.collisions.splice(0)
+  generateCollisionConstraints(constraints, meshes, points)
+  generateTestCollisionConstraints(0, -10, -10, meshes, points)
+  projectConstraints(iterationCount, constraints, points)
+  updateVelocities(dt, points)
+  updatePositions(points)
+  adjustVelocities(constraints, points) // apply restitution etc
+}
+
+},{"./intersection":45,"gl-vec3":15}]},{},[44]);
 </script>
 </html>
