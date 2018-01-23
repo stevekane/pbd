@@ -53,8 +53,7 @@ for (var i = 1; i <= LINK_COUNT; i++) {
 }
 constraints.positions.push({ 
   i: 0, 
-  position: [ 0, 0, 0 ], 
-  stiffness: 1 
+  position: [ 0, 0, 0 ]
 })
 constraints.positions.push({ 
   i: LINK_COUNT, 

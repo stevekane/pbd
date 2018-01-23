@@ -11,7 +11,7 @@ function applyExternalForces(dt, gravity, points) {
   }
 }
 
-function dampVelocity(damping, points) {
+function dampVelocities(damping, points) {
   for (const { velocity } of points) {
     // v = damping * v
     scale(velocity, velocity, damping) 
@@ -216,7 +216,7 @@ function solve(dt, iterationCount, damping, gravity, constraints, meshes, points
   constraints.positions[1].position[1] = Math.sin(performance.now() / 1000) * 2
   constraints.positions[1].position[2] = Math.cos(performance.now() / 1000) * 2
   applyExternalForces(dt, gravity, points)
-  dampVelocity(damping, points)
+  dampVelocities(damping, points)
   estimatePositions(dt, points)
   constraints.collisions.splice(0)
   generateCollisionConstraints(constraints, meshes, points)
