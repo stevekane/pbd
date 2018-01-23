@@ -12,32 +12,54 @@ const AXES_LENGTH = 10
 const INIT_DELAY = 100
 const DT = 1 / 60
 const GRAVITY = [ 0, -100, 0 ]
-const DAMPING = .98
+const DAMPING = .95
 const COLOR_1 = [ .9, .34, .2, 1 ]
 const COLOR_2 = [ .1, .91, .24, 1 ]
 const COLOR_3 = [ .2, .23, .7, 1 ]
+const COLOR_4 = [ .1, .1, .1, .2 ]
 const RED = [ 1, 0, 0, 1 ]
 const GREEN = [ 0, 1, 0, 1 ]
 const BLUE = [ 0, 0, 1, 1 ]
-const ITERATION_COUNT = 10
+const ITERATION_COUNT = 20
 
+const points = []
 const constraints = {
-  distances: [
-    { i1: 0, i2: 1, restLength: 1, stiffness: 1 },
-    { i1: 1, i2: 2, restLength: 1, stiffness: 1 }, 
-    { i1: 2, i2: 3, restLength: 1, stiffness: 1 }, 
-  ],
+  positions: [],
+  distances: [],
   collisions: []
 }
-const points = [
-  new Point(0, 0, 0, 0),
-  new Point(1, 0, 0, 1),
-  new Point(2, 0, 0, 1),
-  new Point(3, 0, 0, 1),
-]
+
 const meshes = [
-  new Mesh([ [ 0, 4, 0 ], [ 0, -4, 4 ], [ 0, -4, -4 ] ]) // triangle
+  new Mesh([ [ 0, 10, 0 ], [ 0, -10, 10 ], [ 0, -10, -10 ] ]) // triangle
 ]
+
+const LINK_COUNT = 1 << 6
+const CHAIN_LENGTH = 10
+const LINK_LENGTH = CHAIN_LENGTH / LINK_COUNT
+const MASS = 1
+const INVERSE_POINT_MASS = 1 / (MASS / (LINK_COUNT + 1))
+const STIFFNESS = 1
+
+for (var i = 0; i <= LINK_COUNT; i++) {
+  points.push(new Point(LINK_LENGTH * i, 0, 0, INVERSE_POINT_MASS))
+}
+for (var i = 1; i <= LINK_COUNT; i++) {
+  constraints.distances.push({
+    i1: i - 1, 
+    i2: i,
+    restLength: LINK_LENGTH,
+    stiffness: STIFFNESS
+  })
+}
+constraints.positions.push({ 
+  i: 0, 
+  position: [ 0, 0, 0 ], 
+  stiffness: 1 
+})
+constraints.positions.push({ 
+  i: LINK_COUNT, 
+  position: [ CHAIN_LENGTH, 0, 0 ]
+})
 
 function Point(x, y, z, inverseMass) {
   this.inverseMass = inverseMass
@@ -75,7 +97,7 @@ function draw() {
     render({
       positions: m.triangles,
       count: m.triangles.length,
-      color: COLOR_2,
+      color: COLOR_4,
       primitive: "triangles"
     })
   }
